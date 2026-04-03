@@ -88,7 +88,7 @@ namespace LiveGameDataEditor.Editor
             // Search field
             var searchField = new TextField { value = _searchText };
             searchField.AddToClassList("search-field");
-            searchField.SetPlaceholderText("Search by Id…");
+            searchField.textEdition.placeholder = "Search by Id…";
             searchField.RegisterValueChangedCallback(evt =>
             {
                 _searchText = evt.newValue;
