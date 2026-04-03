@@ -1,0 +1,145 @@
+/* ============================================================
+   Live Game Data Editor — UI Stylesheet
+   Compatible with Unity 2022.3+ UI Toolkit dark theme.
+   ============================================================ */
+
+/* ── Toolbar ──────────────────────────────────────────────── */
+.toolbar {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: #3c3c3c;
+    border-bottom-width: 1px;
+    border-bottom-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.toolbar-button {
+    margin-left: 4px;
+    min-width: 90px;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+.empty-state {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.empty-state-label {
+    -unity-text-align: middle-center;
+    color: #888888;
+    margin-bottom: 14px;
+    white-space: normal;
+}
+
+.create-btn {
+    min-width: 200px;
+    height: 28px;
+}
+
+/* ── Content area ─────────────────────────────────────────── */
+.content-area {
+    flex-direction: column;
+}
+
+/* ── Table view ───────────────────────────────────────────── */
+.table-view {
+    flex-direction: column;
+}
+
+/* ── Column widths (shared by header labels and row fields) ── */
+.col-gutter {
+    width: 8px;
+    min-width: 8px;
+    flex-shrink: 0;
+}
+
+.col-id {
+    flex: 3;
+    min-width: 120px;
+}
+
+.col-value {
+    flex: 1;
+    min-width: 60px;
+}
+
+.col-multiplier {
+    flex: 1;
+    min-width: 80px;
+}
+
+.col-enabled {
+    width: 64px;
+    min-width: 64px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Header row ───────────────────────────────────────────── */
+.table-header {
+    flex-direction: row;
+    padding: 3px 0;
+    background-color: #383838;
+    border-bottom-width: 1px;
+    border-bottom-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.col-header {
+    -unity-font-style: bold;
+    -unity-text-align: middle-left;
+    padding: 0 4px;
+    color: #cccccc;
+}
+
+/* ── Data rows ────────────────────────────────────────────── */
+.table-scroll {
+    flex-grow: 1;
+}
+
+.table-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 1px 0;
+    border-bottom-width: 1px;
+    border-bottom-color: #2a2a2a;
+}
+
+.table-row--alternate {
+    background-color: rgba(0, 0, 0, 0.12);
+}
+
+.table-row--selected {
+    background-color: rgba(44, 93, 135, 0.55);
+}
+
+/* Remove the bottom border on fields to keep rows compact */
+.table-row TextField,
+.table-row IntegerField,
+.table-row FloatField {
+    margin: 0;
+    border-radius: 0;
+}
+
+/* ── Footer ───────────────────────────────────────────────── */
+.table-footer {
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: #383838;
+    border-top-width: 1px;
+    border-top-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.footer-button {
+    margin-right: 6px;
+}
+
+.footer-button--danger {
+    color: #e06c6c;
+}
