@@ -142,6 +142,29 @@ namespace LiveGameDataEditor.Editor
             Debug.Log($"[LiveGameDataEditor] Imported {container.Entries.Count} entries from: {path}");
         }
 
+        // ── Bulk mutations ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Applies <paramref name="applyAction"/> to every entry at the given indices
+        /// using a single Undo operation, then marks the container dirty.
+        /// </summary>
+        public static void BulkUpdateEntries(
+            GameDataContainer container,
+            List<int> indices,
+            Action<GameDataEntry> applyAction,
+            string undoName)
+        {
+            if (container == null || indices == null || indices.Count == 0 || applyAction == null) return;
+
+            Undo.RecordObject(container, undoName);
+            foreach (int i in indices)
+            {
+                if (i >= 0 && i < container.Entries.Count)
+                    applyAction(container.Entries[i]);
+            }
+            MarkDirty(container);
+        }
+
         // ── Future validation hook ─────────────────────────────────────────────────
 
         /// <summary>

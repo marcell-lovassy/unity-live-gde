@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -9,38 +10,54 @@ namespace LiveGameDataEditor.Editor
     /// <summary>
     /// Main editor window for the Live Game Data Editor.
     /// Open via: Tools > Game Data Editor
+    ///
+    /// Orchestrates:
+    ///   - Asset picker and creation
+    ///   - Search / filter toolbar
+    ///   - Table view (<see cref="GameDataTableView"/>)
+    ///   - Bulk edit panel (<see cref="GameDataBulkEditPanel"/>)
+    ///   - Validation feedback via <see cref="GameDataValidationService"/>
+    ///   - JSON import / export
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
-        private GameDataContainer _container;
-        private GameDataTableView _tableView;
-        private VisualElement _emptyState;
-        private VisualElement _contentArea;
-        private ObjectField _containerField;
+        private GameDataContainer     _container;
+        private GameDataTableView     _tableView;
+        private GameDataBulkEditPanel _bulkEditPanel;
+        private VisualElement         _emptyState;
+        private VisualElement         _contentArea;
+        private ObjectField           _containerField;
+
+        // Toolbar filter state
+        private string _searchText  = string.Empty;
+        private bool   _enabledOnly = false;
+
+        // Latest selection from the table (kept in sync via event)
+        private List<int> _currentSelection = new();
 
         [MenuItem("Tools/Game Data Editor", priority = 100)]
         public static void OpenWindow()
         {
             var window = GetWindow<LiveGameDataEditorWindow>();
-            window.titleContent = new GUIContent("Game Data Editor", EditorGUIUtility.IconContent("d_ScriptableObject Icon").image);
-            window.minSize = new Vector2(620, 400);
+            window.titleContent = new GUIContent(
+                "Game Data Editor",
+                EditorGUIUtility.IconContent("d_ScriptableObject Icon").image);
+            window.minSize = new Vector2(700, 420);
         }
 
         public void CreateGUI()
         {
-            // Apply stylesheet if available
             var uss = AssetDatabase.LoadAssetAtPath<StyleSheet>(
                 "Assets/Editor/LiveGameDataEditor/LiveGameDataEditor.uss");
             if (uss != null)
                 rootVisualElement.styleSheets.Add(uss);
 
             rootVisualElement.style.flexDirection = FlexDirection.Column;
-            rootVisualElement.style.flexGrow = 1;
+            rootVisualElement.style.flexGrow      = 1;
 
             BuildToolbar();
             BuildEmptyState();
             BuildContentArea();
-
             RefreshView();
         }
 
@@ -54,29 +71,50 @@ namespace LiveGameDataEditor.Editor
             // Asset picker
             _containerField = new ObjectField("Data Asset")
             {
-                objectType = typeof(GameDataContainer),
+                objectType        = typeof(GameDataContainer),
                 allowSceneObjects = false,
-                value = _container
+                value             = _container
             };
             _containerField.style.flexGrow = 1;
             _containerField.RegisterValueChangedCallback(evt =>
             {
-                _container = evt.newValue as GameDataContainer;
+                _container   = evt.newValue as GameDataContainer;
+                _searchText  = string.Empty;
+                _enabledOnly = false;
                 RefreshView();
             });
             toolbar.Add(_containerField);
+
+            // Search field
+            var searchField = new TextField { value = _searchText };
+            searchField.AddToClassList("search-field");
+            searchField.SetPlaceholderText("Search by Id…");
+            searchField.RegisterValueChangedCallback(evt =>
+            {
+                _searchText = evt.newValue;
+                _tableView?.SetFilter(_searchText, _enabledOnly);
+            });
+            toolbar.Add(searchField);
+
+            // Enabled-only toggle
+            var enabledToggle = new Toggle("Enabled only") { value = _enabledOnly };
+            enabledToggle.AddToClassList("toolbar-toggle");
+            enabledToggle.RegisterValueChangedCallback(evt =>
+            {
+                _enabledOnly = evt.newValue;
+                _tableView?.SetFilter(_searchText, _enabledOnly);
+            });
+            toolbar.Add(enabledToggle);
 
             var exportBtn = new Button(() => GameDataService.ExportToJson(_container))
                 { text = "Export JSON" };
             exportBtn.AddToClassList("toolbar-button");
 
-            var importBtn = new Button(ImportAndRefresh)
-                { text = "Import JSON" };
+            var importBtn = new Button(ImportAndRefresh) { text = "Import JSON" };
             importBtn.AddToClassList("toolbar-button");
 
             toolbar.Add(exportBtn);
             toolbar.Add(importBtn);
-
             rootVisualElement.Add(toolbar);
         }
 
@@ -106,39 +144,57 @@ namespace LiveGameDataEditor.Editor
         {
             _contentArea = new VisualElement();
             _contentArea.AddToClassList("content-area");
-            _contentArea.style.flexGrow = 1;
+            _contentArea.style.flexGrow      = 1;
+            _contentArea.style.flexDirection = FlexDirection.Column;
 
             _tableView = new GameDataTableView(
-                onEntryChanged: OnEntryChanged,
-                onAddEntry: OnAddEntry,
+                onEntryChanged:  OnEntryChanged,
+                onAddEntry:      OnAddEntry,
                 onRemoveEntries: OnRemoveEntries);
 
+            _tableView.OnSelectionChanged += HandleSelectionChanged;
+
+            _bulkEditPanel = new GameDataBulkEditPanel();
+            _bulkEditPanel.OnBulkApply  += HandleBulkApply;
+            _bulkEditPanel.style.display = DisplayStyle.None;
+
             _contentArea.Add(_tableView);
+            _contentArea.Add(_bulkEditPanel);
             rootVisualElement.Add(_contentArea);
         }
 
-        // ── View refresh ───────────────────────────────────────────────────────────
+        // ── View management ────────────────────────────────────────────────────────
 
         private void RefreshView()
         {
-            bool hasContainer = _container != null;
-            _emptyState.style.display = hasContainer ? DisplayStyle.None : DisplayStyle.Flex;
-            _contentArea.style.display = hasContainer ? DisplayStyle.Flex : DisplayStyle.None;
+            bool has = _container != null;
+            _emptyState.style.display  = has ? DisplayStyle.None : DisplayStyle.Flex;
+            _contentArea.style.display = has ? DisplayStyle.Flex : DisplayStyle.None;
 
-            if (hasContainer)
-                _tableView.Populate(_container);
+            if (!has) return;
+
+            _tableView.Populate(_container);
+            _tableView.SetFilter(_searchText, _enabledOnly);
+            _bulkEditPanel.style.display = DisplayStyle.None;
+            _currentSelection.Clear();
+            RunValidation();
         }
 
-        // ── Callbacks ──────────────────────────────────────────────────────────────
+        private void RunValidation()
+        {
+            if (_container == null) return;
+            var results = GameDataValidationService.RunAll(_container.Entries);
+            _tableView.ApplyValidation(results);
+        }
+
+        // ── Toolbar callbacks ──────────────────────────────────────────────────────
 
         private void CreateNewAsset()
         {
             string path = EditorUtility.SaveFilePanelInProject(
                 "Create Game Data Container",
-                "NewGameData",
-                "asset",
+                "NewGameData", "asset",
                 "Choose a location for the new GameDataContainer asset.");
-
             if (string.IsNullOrEmpty(path)) return;
 
             _container = GameDataService.CreateNewContainer(path);
@@ -149,25 +205,46 @@ namespace LiveGameDataEditor.Editor
         private void ImportAndRefresh()
         {
             GameDataService.ImportFromJson(_container);
-            _tableView.Populate(_container);
+            RefreshView();
         }
 
-        private void OnEntryChanged(int index, GameDataEntry updatedEntry)
+        // ── Table callbacks ────────────────────────────────────────────────────────
+
+        private void OnEntryChanged(int index, GameDataEntry updated)
         {
-            // GameDataService handles Undo.RecordObject before committing the change
-            GameDataService.UpdateEntry(_container, index, updatedEntry);
+            GameDataService.UpdateEntry(_container, index, updated);
+            RunValidation();
         }
 
         private void OnAddEntry()
         {
             GameDataService.AddEntry(_container);
-            _tableView.Populate(_container);
+            RefreshView();
         }
 
         private void OnRemoveEntries(List<int> indices)
         {
             GameDataService.RemoveEntries(_container, indices);
-            _tableView.Populate(_container);
+            RefreshView();
+        }
+
+        private void HandleSelectionChanged(List<int> indices)
+        {
+            _currentSelection = indices;
+
+            bool showBulk = indices.Count >= 2;
+            _bulkEditPanel.style.display = showBulk ? DisplayStyle.Flex : DisplayStyle.None;
+            if (showBulk)
+                _bulkEditPanel.SetSelectionCount(indices.Count);
+        }
+
+        // ── Bulk edit callback ─────────────────────────────────────────────────────
+
+        private void HandleBulkApply(Action<GameDataEntry> applyAction, string undoName)
+        {
+            if (_container == null || _currentSelection.Count == 0) return;
+            GameDataService.BulkUpdateEntries(_container, _currentSelection, applyAction, undoName);
+            RefreshView();
         }
     }
 }

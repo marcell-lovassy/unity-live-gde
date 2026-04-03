@@ -12,11 +12,23 @@
     border-bottom-width: 1px;
     border-bottom-color: #1a1a1a;
     flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .toolbar-button {
     margin-left: 4px;
     min-width: 90px;
+}
+
+.toolbar-toggle {
+    margin-left: 8px;
+    margin-right: 4px;
+}
+
+.search-field {
+    min-width: 160px;
+    margin-left: 8px;
+    flex-shrink: 1;
 }
 
 /* ── Empty state ──────────────────────────────────────────── */
@@ -49,13 +61,15 @@
     flex-direction: column;
 }
 
-/* ── Column widths (shared by header labels and row fields) ── */
+/* ── Column widths (shared by header cells and row fields) ─── */
 .col-gutter {
     width: 8px;
     min-width: 8px;
     flex-shrink: 0;
 }
 
+/* These USS classes act as overrides; inline styles from
+   GameDataColumnDefinition.BuildDef() are the authoritative defaults. */
 .col-id {
     flex: 3;
     min-width: 120px;
@@ -89,11 +103,33 @@
     flex-shrink: 0;
 }
 
+/* Container for header label + sort indicator */
+.col-header-cell {
+    flex-direction: row;
+    align-items: center;
+    cursor: arrow;
+}
+
+.col-header-cell:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
 .col-header {
     -unity-font-style: bold;
     -unity-text-align: middle-left;
     padding: 0 4px;
     color: #cccccc;
+}
+
+/* ── Sort indicators ──────────────────────────────────────── */
+.sort-indicator {
+    color: #666666;
+    font-size: 10px;
+    padding-right: 4px;
+}
+
+.sort-indicator--active {
+    color: #5aadff;
 }
 
 /* ── Data rows ────────────────────────────────────────────── */
@@ -117,12 +153,32 @@
     background-color: rgba(44, 93, 135, 0.55);
 }
 
-/* Remove the bottom border on fields to keep rows compact */
+/* Validation states */
+.table-row--invalid {
+    background-color: rgba(180, 40, 40, 0.30);
+}
+
+.table-row--warning {
+    background-color: rgba(180, 140, 20, 0.28);
+}
+
+/* Selected row keeps selection color even when invalid */
+.table-row--selected.table-row--invalid {
+    background-color: rgba(100, 50, 130, 0.55);
+}
+
+/* Remove margin/border from inline fields for compactness */
 .table-row TextField,
 .table-row IntegerField,
 .table-row FloatField {
     margin: 0;
     border-radius: 0;
+}
+
+.col-readonly {
+    color: #888888;
+    -unity-text-align: middle-left;
+    padding: 0 4px;
 }
 
 /* ── Footer ───────────────────────────────────────────────── */
@@ -142,4 +198,51 @@
 
 .footer-button--danger {
     color: #e06c6c;
+}
+
+/* ── Bulk Edit Panel ──────────────────────────────────────── */
+.bulk-edit-panel {
+    flex-direction: column;
+    padding: 8px 10px;
+    background-color: #2e2e2e;
+    border-top-width: 1px;
+    border-top-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.bulk-edit-title {
+    color: #b0b0b0;
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+    font-size: 11px;
+}
+
+.bulk-edit-fields {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.bulk-edit-section {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 16px;
+    margin-bottom: 4px;
+}
+
+.bulk-edit-section-label {
+    color: #999999;
+    min-width: 130px;
+    font-size: 11px;
+}
+
+.bulk-field {
+    min-width: 70px;
+    max-width: 100px;
+    margin-right: 4px;
+}
+
+.bulk-apply-btn {
+    min-width: 52px;
+    height: 22px;
+    font-size: 11px;
 }
