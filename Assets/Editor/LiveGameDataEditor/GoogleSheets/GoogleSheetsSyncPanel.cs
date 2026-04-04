@@ -15,8 +15,9 @@ namespace LiveGameDataEditor.GoogleSheets
     /// Lets the designer pick a <see cref="GoogleSheetsConfig"/>, sign in (OAuth), then push or pull
     /// with one click.
     ///
-    /// The association between a container and a config is stored in EditorPrefs keyed by the
-    /// container asset's GUID so it survives domain reloads.
+    /// The <see cref="GoogleSheetsConfig"/> is shared across all containers in the editor window —
+    /// switching containers (browser tabs) does not change or clear the config.
+    /// The association is stored in a single EditorPrefs key per project.
     /// </summary>
     public sealed class GoogleSheetsSyncPanel : VisualElement
     {
@@ -48,7 +49,8 @@ namespace LiveGameDataEditor.GoogleSheets
         private VisualElement _statusRow;
         private Label         _lastSyncLabel;
 
-        private const string PrefKeyPrefix = "LiveGameDataEditor.SheetsConfig.";
+        // Single shared EditorPrefs key — config is project-wide, not per-container.
+        private const string SharedConfigPrefKey = "LiveGameDataEditor.SheetsConfig";
 
         // ── Constructor ────────────────────────────────────────────────────────
 
@@ -62,7 +64,8 @@ namespace LiveGameDataEditor.GoogleSheets
 
         /// <summary>
         /// Called by the window whenever the loaded container changes (including null).
-        /// Restores the previously associated config from EditorPrefs.
+        /// The config is shared — it is kept when switching containers and only restored
+        /// from EditorPrefs on the very first call (cold start with no config loaded yet).
         /// </summary>
         public void SetContainer(IGameDataContainer container)
         {
@@ -78,18 +81,24 @@ namespace LiveGameDataEditor.GoogleSheets
                 ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(so))
                 : "";
 
-            GoogleSheetsConfig restoredConfig = null;
-            if (!string.IsNullOrEmpty(_containerGuid))
+            if (_config == null)
             {
-                string configGuid = EditorPrefs.GetString(PrefKeyPrefix + _containerGuid, "");
+                // Cold start — restore the shared config from EditorPrefs.
+                GoogleSheetsConfig restoredConfig = null;
+                string configGuid = EditorPrefs.GetString(SharedConfigPrefKey, "");
                 if (!string.IsNullOrEmpty(configGuid))
                 {
                     string configPath = AssetDatabase.GUIDToAssetPath(configGuid);
                     restoredConfig = AssetDatabase.LoadAssetAtPath<GoogleSheetsConfig>(configPath);
                 }
+                SetConfig(restoredConfig, saveToPrefs: false);
+            }
+            else
+            {
+                // Container switch — keep the existing config; just re-register auto-push.
+                GoogleSheetsAutoSaveMonitor.Register(_containerGuid, _container, _config);
             }
 
-            SetConfig(restoredConfig, saveToPrefs: false);
             RefreshButtons();
             SetStatus("", success: true);
             UpdateLastSyncLabel();
@@ -210,12 +219,12 @@ namespace LiveGameDataEditor.GoogleSheets
 
             GoogleSheetsAutoSaveMonitor.Register(_containerGuid, _container, _config);
 
-            if (saveToPrefs && !string.IsNullOrEmpty(_containerGuid))
+            if (saveToPrefs)
             {
                 string configGuid = config != null
                     ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(config))
                     : "";
-                EditorPrefs.SetString(PrefKeyPrefix + _containerGuid, configGuid);
+                EditorPrefs.SetString(SharedConfigPrefKey, configGuid);
             }
         }
 
