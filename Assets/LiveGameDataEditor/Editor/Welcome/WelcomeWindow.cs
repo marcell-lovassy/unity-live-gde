@@ -501,7 +501,9 @@ namespace LiveGameDataEditor.Editor
                     _                                   => mode.ToString()
                 };
 
-                var btn = new Button(() =>
+                var btn = new Button();
+                btn.text = label;
+                btn.clicked += () =>
                 {
                     Undo.RecordObject(_wizardConfig, "Set Auth Mode");
                     _wizardConfig.AuthMode = captured;
@@ -514,8 +516,7 @@ namespace LiveGameDataEditor.Editor
                         child.RemoveFromClassList("welcome-wizard-auth-btn--active");
                     }
                     btn.AddToClassList("welcome-wizard-auth-btn--active");
-                })
-                { text = label };
+                };
 
                 btn.AddToClassList("welcome-wizard-auth-btn");
                 if (active)
