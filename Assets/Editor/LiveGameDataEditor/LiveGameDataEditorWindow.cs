@@ -35,12 +35,14 @@ namespace LiveGameDataEditor.Editor
 
         private void OnEnable()
         {
-            Undo.undoRedoPerformed += RefreshView;
+            Undo.undoRedoPerformed  += RefreshView;
+            EditorApplication.update += UpdateDirtyIndicator;
         }
 
         private void OnDisable()
         {
-            Undo.undoRedoPerformed -= RefreshView;
+            Undo.undoRedoPerformed  -= RefreshView;
+            EditorApplication.update -= UpdateDirtyIndicator;
         }
 
         [MenuItem("Tools/Game Data Editor", priority = 100)]
@@ -229,8 +231,8 @@ namespace LiveGameDataEditor.Editor
             _emptyState.AddToClassList("empty-state");
 
             var label = new Label(
-                "No data asset selected.\n" +
-                "Use the picker above to select an existing asset, or create a new one.");
+                "No data asset loaded.\n" +
+                "Use ☰ Browse to open an existing asset, or create a new one below.");
             label.AddToClassList("empty-state-label");
 
             var createBtn = new Button(() => _selectionBar.TriggerCreateNew())
@@ -297,6 +299,19 @@ namespace LiveGameDataEditor.Editor
             if (_container == null) return;
             var results = GameDataValidationService.RunAll(_container);
             _tableView.ApplyValidation(results);
+        }
+
+        /// <summary>
+        /// Polls the loaded SO's dirty state each editor frame and reflects it in the
+        /// window title as a bullet dot: "● Game Data Editor" when unsaved changes exist.
+        /// </summary>
+        private void UpdateDirtyIndicator()
+        {
+            var so    = _container as ScriptableObject;
+            bool dirty = so != null && EditorUtility.IsDirty(so);
+            string title = dirty ? "● Game Data Editor" : "Game Data Editor";
+            if (titleContent.text != title)
+                titleContent.text = title;
         }
 
         private void ToggleBrowser()

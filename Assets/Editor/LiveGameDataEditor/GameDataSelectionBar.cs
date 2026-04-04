@@ -1,33 +1,34 @@
 using System;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Top-of-window bar that handles data asset selection and creation.
+    /// Top-of-window bar that shows the currently loaded data asset and provides
+    /// "Create New…" and "✕ Close" controls.
+    ///
+    /// Asset selection is handled by the <see cref="GameDataBrowserPanel"/> sidebar.
+    /// This bar is purely informational — it shows what is loaded and lets you close it.
     ///
     /// Layout (left → right):
-    ///   [ObjectField — selects any ScriptableObject, validated as IGameDataContainer]
-    ///   [Info label  — "EntryTypeName (N rows)"]
-    ///   [Create New… — opens a GenericMenu listing all discovered IGameDataEntry types]
-    ///
-    /// The <see cref="ObjectField"/> is typed to <see cref="ScriptableObject"/> because
-    /// Unity's ObjectField does not support interface types. Validation is performed in
-    /// the change callback; invalid assignments are rejected with an error dialog.
+    ///   [Asset name label]  [Asset path label (muted)]  [✕]  [Create New…]
     /// </summary>
     public class GameDataSelectionBar : VisualElement
     {
         /// <summary>Raised when a valid IGameDataContainer is selected or newly created.</summary>
         public event Action<IGameDataContainer> OnContainerSelected;
 
-        /// <summary>Raised when the ObjectField is cleared (value set to null).</summary>
+        /// <summary>Raised when the user clicks ✕ to unload the current container.</summary>
         public event Action OnContainerCleared;
 
-        private ObjectField _objectField;
-        private Label       _infoLabel;
+        private Label _nameLabel;
+        private Label _pathLabel;
+        private Button _clearBtn;
+
+        // The currently loaded SO (null when nothing is selected)
+        private ScriptableObject _current;
 
         public GameDataSelectionBar()
         {
@@ -38,59 +39,82 @@ namespace LiveGameDataEditor.Editor
         // ── Public API ─────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Updates the info label row count. Call this after the table is populated
-        /// so the count reflects the current data, not a stale snapshot.
+        /// Updates the info label row count. Call after the table is populated.
         /// </summary>
         public void UpdateInfo(IGameDataContainer container)
         {
             if (container == null)
             {
-                _infoLabel.text = string.Empty;
+                _nameLabel.text = "No asset loaded";
+                _pathLabel.text = "Use ☰ Browse or Create New to get started";
+                _clearBtn.style.display = DisplayStyle.None;
                 return;
             }
             int count       = container.GetEntries()?.Count ?? 0;
             string typeName = GameDataTypeRegistry.GetEntryDisplayName(container.EntryType);
-            _infoLabel.text = $"{typeName} ({count} row{(count == 1 ? "" : "s")})";
+            _nameLabel.text = $"{(container as ScriptableObject)?.name ?? typeName}";
+            _pathLabel.text = $"{typeName}  ·  {count} row{(count == 1 ? "" : "s")}  ·  " +
+                              AssetDatabase.GetAssetPath(container as UnityEngine.Object);
+            _clearBtn.style.display = DisplayStyle.Flex;
         }
 
         /// <summary>
-        /// Silently sets the ObjectField to <paramref name="obj"/> without triggering
-        /// the change callback. Use this when loading a container programmatically.
-        /// </summary>
-        public void SetValueWithoutNotify(UnityEngine.Object obj)
-            => _objectField.SetValueWithoutNotify(obj);
-
-        /// <summary>
-        /// Programmatically opens the "Create New…" context menu.
-        /// Useful for wiring to other UI elements (e.g. the empty-state button).
-        /// </summary>
-        public void TriggerCreateNew() => OnCreateNewClicked();
-
-        /// <summary>
-        /// Selects <paramref name="so"/> by setting the ObjectField value, which triggers
-        /// the normal validation + <see cref="OnContainerSelected"/> pipeline.
+        /// Loads <paramref name="so"/> as the current container, firing
+        /// <see cref="OnContainerSelected"/> if it is a valid <see cref="IGameDataContainer"/>.
         /// </summary>
         public void SelectContainer(ScriptableObject so)
-            => _objectField.value = so;
+        {
+            if (so == null)
+            {
+                _current = null;
+                UpdateInfo(null);
+                OnContainerCleared?.Invoke();
+                return;
+            }
+
+            if (so is not IGameDataContainer container)
+            {
+                EditorUtility.DisplayDialog(
+                    "Invalid Data Asset",
+                    $"'{so.name}' does not implement IGameDataContainer.\n\n" +
+                    "Containers must extend GameDataContainerBase<T>.",
+                    "OK");
+                return;
+            }
+
+            _current = so;
+            UpdateInfo(container);
+            OnContainerSelected?.Invoke(container);
+        }
+
+        /// <summary>Programmatically opens the "Create New…" context menu.</summary>
+        public void TriggerCreateNew() => OnCreateNewClicked();
 
         // ── UI construction ────────────────────────────────────────────────────────
 
         private void Build()
         {
-            // Asset picker — typed to ScriptableObject; validated in the callback.
-            _objectField = new ObjectField("Data Asset")
-            {
-                objectType        = typeof(ScriptableObject),
-                allowSceneObjects = false,
-            };
-            _objectField.style.flexGrow = 1;
-            _objectField.RegisterValueChangedCallback(OnObjectFieldChanged);
-            Add(_objectField);
+            // Asset name — shown bold and large
+            _nameLabel = new Label("No asset loaded");
+            _nameLabel.AddToClassList("asset-name-label");
+            Add(_nameLabel);
 
-            // Compact info label: "EnemyData (12 rows)"
-            _infoLabel = new Label();
-            _infoLabel.AddToClassList("data-info-label");
-            Add(_infoLabel);
+            // Path / type info — muted subtitle
+            _pathLabel = new Label("Use ☰ Browse or Create New to get started");
+            _pathLabel.AddToClassList("asset-path-label");
+            Add(_pathLabel);
+
+            // Spacer to push the buttons to the right
+            var spacer = new VisualElement();
+            spacer.style.flexGrow = 1;
+            Add(spacer);
+
+            // Clear button — only visible when an asset is loaded
+            _clearBtn = new Button(OnClearClicked) { text = "✕" };
+            _clearBtn.AddToClassList("clear-btn");
+            _clearBtn.tooltip = "Close this asset";
+            _clearBtn.style.display = DisplayStyle.None;
+            Add(_clearBtn);
 
             var createBtn = new Button(OnCreateNewClicked) { text = "Create New…" };
             createBtn.AddToClassList("create-new-btn");
@@ -99,31 +123,11 @@ namespace LiveGameDataEditor.Editor
 
         // ── Callbacks ──────────────────────────────────────────────────────────────
 
-        private void OnObjectFieldChanged(ChangeEvent<UnityEngine.Object> evt)
+        private void OnClearClicked()
         {
-            var newObj = evt.newValue;
-
-            if (newObj == null)
-            {
-                _infoLabel.text = string.Empty;
-                OnContainerCleared?.Invoke();
-                return;
-            }
-
-            if (newObj is not IGameDataContainer container)
-            {
-                // Silently restore the previous value and inform the user.
-                _objectField.SetValueWithoutNotify(evt.previousValue);
-                EditorUtility.DisplayDialog(
-                    "Invalid Data Asset",
-                    $"'{newObj.name}' does not implement IGameDataContainer.\n\n" +
-                    "Containers must extend GameDataContainerBase<T>.",
-                    "OK");
-                return;
-            }
-
-            UpdateInfo(container);
-            OnContainerSelected?.Invoke(container);
+            _current = null;
+            UpdateInfo(null);
+            OnContainerCleared?.Invoke();
         }
 
         private void OnCreateNewClicked()
@@ -142,14 +146,14 @@ namespace LiveGameDataEditor.Editor
             var menu = new GenericMenu();
             foreach (var entryType in entryTypes)
             {
-                var type  = entryType; // capture for lambda closure
+                var type  = entryType;
                 string label = GameDataTypeRegistry.GetEntryDisplayName(type);
                 menu.AddItem(new GUIContent(label), false, () =>
                 {
                     var container = GameDataAssetFactory.CreateForEntryType(type);
                     if (container == null) return;
 
-                    _objectField.SetValueWithoutNotify(container as UnityEngine.Object);
+                    _current = container as ScriptableObject;
                     UpdateInfo(container);
                     OnContainerSelected?.Invoke(container);
                 });
