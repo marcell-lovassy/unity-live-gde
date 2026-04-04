@@ -9,10 +9,8 @@ namespace LiveGameDataEditor
     /// The <c>Entries</c> list and <see cref="IGameDataContainer"/> implementation are
     /// provided by <see cref="GameDataContainerBase{T}"/>.
     /// </summary>
-    [CreateAssetMenu(
-        fileName = "NewGameData",
-        menuName = "Live Game Data Editor/Game Data Container",
-        order = 0)]
+    [GoogleSheetsTab("GameData")]
+    [CreateAssetMenu(fileName = "NewGameData", menuName = "Live Game Data Editor/Game Data Container", order = 0)]
     public class GameDataContainer : GameDataContainerBase<GameDataEntry>
     {
     }
