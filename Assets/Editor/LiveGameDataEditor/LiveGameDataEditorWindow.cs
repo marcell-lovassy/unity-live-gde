@@ -29,6 +29,16 @@ namespace LiveGameDataEditor.Editor
         private string _searchText  = string.Empty;
         private bool   _enabledOnly = false;
 
+        private void OnEnable()
+        {
+            Undo.undoRedoPerformed += RefreshView;
+        }
+
+        private void OnDisable()
+        {
+            Undo.undoRedoPerformed -= RefreshView;
+        }
+
         [MenuItem("Tools/Game Data Editor", priority = 100)]
         public static void OpenWindow()
         {
