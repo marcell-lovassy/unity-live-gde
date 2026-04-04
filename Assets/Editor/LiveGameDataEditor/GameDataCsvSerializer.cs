@@ -122,7 +122,7 @@ namespace LiveGameDataEditor.Editor
         {
             if (value == null) return string.Empty;
             if (col.IsList)        return GameDataColumnDefinition.ListFieldToString(value, col);
-            if (col.IsUnityObject) return AssetDatabase.GetAssetPath((Object)value);
+            if (col.IsUnityObject) return AssetDatabase.GetAssetPath((UnityEngine.Object)value);
             if (col.IsBool)        return value.ToString().ToLowerInvariant();
             return value.ToString();
         }

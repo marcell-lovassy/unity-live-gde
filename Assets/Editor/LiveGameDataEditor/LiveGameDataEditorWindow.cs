@@ -26,6 +26,7 @@ namespace LiveGameDataEditor.Editor
         private VisualElement         _contentArea;
         private VisualElement         _mainArea;
         private VisualElement         _mainContent;
+        private VisualElement         _browserResizeHandle;
 
         // Toolbar filter state
         private string _searchText  = string.Empty;
@@ -165,6 +166,11 @@ namespace LiveGameDataEditor.Editor
             _browserPanel.style.display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
             _mainArea.Add(_browserPanel);
 
+            // Browser resize handle — draggable right edge of the sidebar
+            _browserResizeHandle = BuildBrowserResizeHandle();
+            _browserResizeHandle.style.display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            _mainArea.Add(_browserResizeHandle);
+
             // Content area wrapper
             _mainContent = new VisualElement();
             _mainContent.style.flexGrow      = 1;
@@ -175,6 +181,44 @@ namespace LiveGameDataEditor.Editor
 
             _mainArea.Add(_mainContent);
             rootVisualElement.Add(_mainArea);
+        }
+
+        private VisualElement BuildBrowserResizeHandle()
+        {
+            var handle = new VisualElement();
+            handle.AddToClassList("browser-resize-handle");
+
+            float dragStartX = 0;
+            float dragStartW = 0;
+            bool  dragging   = false;
+
+            handle.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                dragging   = true;
+                dragStartX = evt.position.x;
+                dragStartW = _browserPanel.resolvedStyle.width;
+                handle.CapturePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+
+            handle.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (!dragging) return;
+                float newW = Mathf.Clamp(dragStartW + (evt.position.x - dragStartX), 120f, 500f);
+                _browserPanel.style.width = newW;
+                evt.StopPropagation();
+            });
+
+            handle.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (!dragging) return;
+                dragging = false;
+                handle.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+
+            return handle;
         }
 
         // ── Empty state ────────────────────────────────────────────────────────────
@@ -258,7 +302,9 @@ namespace LiveGameDataEditor.Editor
         private void ToggleBrowser()
         {
             _browserOpen = !_browserOpen;
-            _browserPanel.style.display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            var display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            _browserPanel.style.display          = display;
+            _browserResizeHandle.style.display   = display;
             if (_browserOpen)
             {
                 _browserPanel.Refresh();
@@ -286,6 +332,7 @@ namespace LiveGameDataEditor.Editor
         {
             GameDataService.UpdateEntry(_container, index, updated);
             RunValidation();
+            _tableView.UpdateStats();
         }
 
         private void OnAddEntry()

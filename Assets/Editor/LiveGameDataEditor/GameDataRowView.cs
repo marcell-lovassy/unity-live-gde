@@ -106,6 +106,30 @@ namespace LiveGameDataEditor.Editor
             el.schedule.Execute(() => el.Focus()).ExecuteLater(0);
         }
 
+        /// <summary>
+        /// Applies a fixed width override to the field cell for the given column field name.
+        /// Called by <see cref="GameDataTableView"/> when the user drags a resize handle.
+        /// </summary>
+        public void SetColumnWidth(string fieldName, float width)
+        {
+            var el = this.Q(className: $"col-{fieldName.ToLower()}");
+            if (el == null) return;
+            el.style.width      = width;
+            el.style.minWidth   = width;
+            el.style.flexGrow   = 0;
+            el.style.flexShrink = 0;
+        }
+
+        /// <summary>
+        /// Resets a column back to default flex sizing (removes the width override).
+        /// </summary>
+        public void ResetColumnSizing(string fieldName, GameDataColumnDefinition col)
+        {
+            var el = this.Q(className: $"col-{fieldName.ToLower()}");
+            if (el == null) return;
+            ApplySizing(el, col);
+        }
+
         // ── UI construction ────────────────────────────────────────────────────────
 
         private void BuildFields()

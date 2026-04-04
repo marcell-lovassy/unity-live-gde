@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -48,9 +49,17 @@ namespace LiveGameDataEditor.Editor
         // Header sort-indicator labels, keyed by field name
         private readonly Dictionary<string, Label> _sortIndicators = new();
 
+        // Column width overrides (set when user drags a resize handle), keyed by field name.
+        // When present, the column uses a fixed width instead of flexGrow.
+        private readonly Dictionary<string, float> _colWidthOverrides = new();
+
+        // Header cells tracked for resize updates, keyed by field name
+        private readonly Dictionary<string, VisualElement> _headerCells = new();
+
         // Stats footer
         private VisualElement    _statsRow;
         private readonly List<Label> _statsLabels  = new();
+        private readonly Dictionary<string, Label> _statsCells = new();
         private Label            _statsCountLabel;
         private readonly List<int>   _visibleIndices = new();
 
@@ -92,7 +101,9 @@ namespace LiveGameDataEditor.Editor
             _rows.Clear();
             _scrollView.Clear();
             _sortIndicators.Clear();
+            _headerCells.Clear();
             _statsLabels.Clear();
+            _statsCells.Clear();
 
             if (container == null) { RebuildStatsRow(); return; }
 
@@ -111,6 +122,10 @@ namespace LiveGameDataEditor.Editor
                 row.OnEntryChanged     += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
                 row.OnSelectionToggled += (isMulti) => HandleRowSelection(capturedIndex, isMulti);
                 row.OnRequestNextRow   += colIndex  => NavigateToNextRow(row, colIndex);
+
+                // Apply any existing column width overrides to this new row.
+                foreach (var kvp in _colWidthOverrides)
+                    row.SetColumnWidth(kvp.Key, kvp.Value);
 
                 _rows.Add(row);
             }
@@ -139,6 +154,12 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
+        /// <summary>
+        /// Refreshes the stats footer without rebuilding rows.
+        /// Call this after an inline field edit so sum/avg stays current.
+        /// </summary>
+        public void UpdateStats() => UpdateStatsRow();
+
         // ── Header ─────────────────────────────────────────────────────────────────
 
         private void RebuildHeader()
@@ -155,6 +176,7 @@ namespace LiveGameDataEditor.Editor
                 cell.AddToClassList("col-header-cell");
                 cell.AddToClassList($"col-{col.Field.Name.ToLower()}");
                 ApplySizing(cell, col);
+                _headerCells[col.Field.Name] = cell;
 
                 var label = new Label(col.Label);
                 label.AddToClassList("col-header");
@@ -167,7 +189,11 @@ namespace LiveGameDataEditor.Editor
                 cell.Add(indicator);
 
                 string fieldName = col.Field.Name;
+                // Sort on click of the header cell (resize handle stops ClickEvent propagation)
                 cell.RegisterCallback<ClickEvent>(_ => OnHeaderClicked(fieldName));
+
+                // Resize handle — thin strip at the right edge
+                cell.Add(BuildResizeHandle(col));
 
                 _headerRow.Add(cell);
             }
@@ -283,6 +309,7 @@ namespace LiveGameDataEditor.Editor
         {
             _statsRow.Clear();
             _statsLabels.Clear();
+            _statsCells.Clear();
 
             // Gutter to align with data rows
             var gutter = new VisualElement();
@@ -302,8 +329,12 @@ namespace LiveGameDataEditor.Editor
                 label.AddToClassList("stats-cell");
                 label.AddToClassList($"col-{col.Field.Name.ToLower()}");
                 ApplySizing(label, col);
+                // Apply any existing override
+                if (_colWidthOverrides.TryGetValue(col.Field.Name, out float w))
+                    SetFixedWidth(label, w);
                 _statsRow.Add(label);
                 _statsLabels.Add(label);
+                _statsCells[col.Field.Name] = label;
             }
         }
 
@@ -423,6 +454,95 @@ namespace LiveGameDataEditor.Editor
             int visibleIndex = _scrollView.IndexOf(sourceRow);
             if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1) return;
             (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
+        }
+
+        // ── Column resizing ────────────────────────────────────────────────────────
+
+        private VisualElement BuildResizeHandle(GameDataColumnDefinition col)
+        {
+            var handle = new VisualElement();
+            handle.AddToClassList("col-resize-handle");
+
+            // Prevent clicks on the handle from bubbling to the header cell (which sorts)
+            handle.RegisterCallback<ClickEvent>(evt => evt.StopPropagation());
+
+            float dragStartX   = 0;
+            float dragStartW   = 0;
+            bool  dragging     = false;
+            string fieldName   = col.Field.Name;
+
+            handle.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+
+                // Double-click → reset column to default flex sizing
+                if (evt.clickCount == 2)
+                {
+                    dragging = false;
+                    handle.ReleasePointer(evt.pointerId);
+                    _colWidthOverrides.Remove(fieldName);
+                    if (_headerCells.TryGetValue(fieldName, out var hc))
+                        ApplySizing(hc, col);
+                    if (_statsCells.TryGetValue(fieldName, out var sc))
+                        ApplySizing(sc, col);
+                    foreach (var row in _rows)
+                        row.ResetColumnSizing(fieldName, col);
+                    evt.StopPropagation();
+                    return;
+                }
+
+                dragging   = true;
+                dragStartX = evt.position.x;
+                dragStartW = _headerCells.TryGetValue(fieldName, out var headerCell)
+                    ? headerCell.resolvedStyle.width
+                    : col.MinWidth;
+                handle.CapturePointer(evt.pointerId);
+                evt.StopPropagation(); // prevent column sort
+            });
+
+            handle.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (!dragging) return;
+                float newWidth = Mathf.Max(col.MinWidth, dragStartW + (evt.position.x - dragStartX));
+                ApplyWidthOverride(fieldName, newWidth);
+                evt.StopPropagation();
+            });
+
+            handle.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (!dragging) return;
+                dragging = false;
+                handle.ReleasePointer(evt.pointerId);
+                evt.StopPropagation();
+            });
+
+            return handle;
+        }
+
+        /// <summary>
+        /// Stores a fixed-width override for <paramref name="fieldName"/> and applies it
+        /// to the header cell and all row cells immediately.
+        /// </summary>
+        private void ApplyWidthOverride(string fieldName, float width)
+        {
+            _colWidthOverrides[fieldName] = width;
+
+            if (_headerCells.TryGetValue(fieldName, out var headerCell))
+                SetFixedWidth(headerCell, width);
+
+            if (_statsCells.TryGetValue(fieldName, out var statsCell))
+                SetFixedWidth(statsCell, width);
+
+            foreach (var row in _rows)
+                row.SetColumnWidth(fieldName, width);
+        }
+
+        private static void SetFixedWidth(VisualElement el, float width)
+        {
+            el.style.width      = width;
+            el.style.minWidth   = width;
+            el.style.flexGrow   = 0;
+            el.style.flexShrink = 0;
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────────
