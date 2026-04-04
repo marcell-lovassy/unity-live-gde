@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 899a176a84d3b3846a25cdc00b54e806, type: 3}
-  m_Name: NewEnemyDataEntryContainer
+  m_Name: EnemyDataEntryContainer
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.EnemyDataContainer
   Entries:
   - Id: Skeleton
-    Health: 500
+    Health: 150
     Damage: 50
     EnemyType: 1
     DropTags:
@@ -33,4 +33,19 @@ MonoBehaviour:
     EnemyType: 0
     DropTags:
     - gold
+    Enabled: 1
+  - Id: Boss_1
+    Health: 500
+    Damage: 200
+    EnemyType: 1
+    DropTags:
+    - gold
+    - sword
+    Enabled: 1
+  - Id: Vampire
+    Health: 300
+    Damage: 30
+    EnemyType: 0
+    DropTags:
+    - blood
     Enabled: 1

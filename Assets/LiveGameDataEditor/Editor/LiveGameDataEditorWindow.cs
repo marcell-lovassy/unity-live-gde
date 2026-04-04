@@ -61,10 +61,12 @@ namespace LiveGameDataEditor.Editor
 
         public void CreateGUI()
         {
-            var uss = AssetDatabase.LoadAssetAtPath<StyleSheet>(
-                "Assets/Editor/LiveGameDataEditor/LiveGameDataEditor.uss");
-            if (uss != null)
+            var ussGuids = AssetDatabase.FindAssets("LiveGameDataEditor t:StyleSheet");
+            if (ussGuids is { Length: > 0 })
+            {
+                var uss = AssetDatabase.LoadAssetAtPath<StyleSheet>(AssetDatabase.GUIDToAssetPath(ussGuids[0]));
                 rootVisualElement.styleSheets.Add(uss);
+            }
 
             rootVisualElement.style.flexDirection = FlexDirection.Column;
             rootVisualElement.style.flexGrow      = 1;

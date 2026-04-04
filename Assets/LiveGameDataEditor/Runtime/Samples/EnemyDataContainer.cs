@@ -13,10 +13,7 @@ namespace LiveGameDataEditor
     /// which tab in the spreadsheet to push/pull data from.
     /// </summary>
     [GoogleSheetsTab("EnemyData")]
-    [CreateAssetMenu(
-        fileName = "NewEnemyData",
-        menuName = "Live Game Data Editor/Enemy Data Container",
-        order = 0)]
+    [CreateAssetMenu(fileName = "EnemyData", menuName = "Live Game Data Editor/Enemy Data Container", order = 0)]
     public class EnemyDataContainer : GameDataContainerBase<EnemyDataEntry>
     {
     }

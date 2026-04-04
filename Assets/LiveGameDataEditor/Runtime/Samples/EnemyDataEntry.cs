@@ -8,24 +8,27 @@ namespace LiveGameDataEditor
 
     /// <summary>
     /// Example game data entry demonstrating all supported field types:
-    ///   string, int, bool, enum, and List&lt;string&gt; with [ListField].
+    ///   string, int, bool, enum, and List<typeparam></typeparam>>; with [ListField].
     /// </summary>
     [GameData(DisplayName = "Enemy")]
     [Serializable]
     public class EnemyDataEntry : IGameDataEntry
     {
+        string IGameDataEntry.Id { get => Id; set => Id = value; }
+        
         public string Id;
+        
         [ColumnHeader("HP")]
         public int Health;
+        
         public int Damage;
         public EnemyType EnemyType;
+        
         [ColumnHeader("Drop Tags")]
         [ListField(",")]
         public List<string> DropTags;
+        
         public bool Enabled;
-
-        // Explicit interface implementation — routes through the public serialized field.
-        string IGameDataEntry.Id { get => Id; set => Id = value; }
 
         public EnemyDataEntry()
         {

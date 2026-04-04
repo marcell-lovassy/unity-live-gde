@@ -10,21 +10,23 @@ namespace LiveGameDataEditor.Editor
         {
             var idCount = new Dictionary<string, int>(entries.Count, StringComparer.Ordinal);
 
-            for (int i = 0; i < entries.Count; i++)
+            foreach (var t in entries)
             {
-                string id = entries[i].Id ?? string.Empty;
-                idCount.TryGetValue(id, out int count);
+                var id = t.Id ?? string.Empty;
+                idCount.TryGetValue(id, out var count);
                 idCount[id] = count + 1;
             }
 
-            for (int i = 0; i < entries.Count; i++)
+            for (var i = 0; i < entries.Count; i++)
             {
-                string id = entries[i].Id ?? string.Empty;
-                if (idCount.TryGetValue(id, out int count) && count > 1)
+                var id = entries[i].Id ?? string.Empty;
+                if (idCount.TryGetValue(id, out var count) && count > 1)
+                {
                     yield return new ValidationResult(
                         i, nameof(IGameDataEntry.Id),
                         $"Duplicate Id \"{id}\"",
                         ValidationSeverity.Error);
+                }
             }
         }
     }
