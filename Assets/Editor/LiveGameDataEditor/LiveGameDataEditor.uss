@@ -662,6 +662,259 @@
     color: #e08080;
 }
 
-/* end of stylesheet */
+/* ── Welcome Window ─────────────────────────────────────────── */
+
+.welcome-root {
+    background-color: #1e1e1e;
+    flex-direction: column;
+}
+
+/* Banner */
+.welcome-banner {
+    background-color: #1a3a5c;
+    padding: 18px 24px 16px;
+    border-bottom-width: 2px;
+    border-bottom-color: #2d6a9f;
+    flex-shrink: 0;
+}
+
+.welcome-banner-title {
+    font-size: 20px;
+    -unity-font-style: bold;
+    color: #d0e8ff;
+}
+
+.welcome-banner-subtitle {
+    font-size: 11px;
+    color: #7aacce;
+    margin-top: 3px;
+}
+
+/* Body: sidebar + content */
+.welcome-body {
+    flex-direction: row;
+    flex-grow: 1;
+}
+
+/* Sidebar */
+.welcome-sidebar {
+    width: 140px;
+    background-color: #252525;
+    border-right-width: 1px;
+    border-right-color: #181818;
+    flex-shrink: 0;
+    padding-top: 8px;
+}
+
+.welcome-tab-btn {
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    color: #9a9a9a;
+    font-size: 11px;
+    -unity-text-align: middle-left;
+    padding: 8px 12px;
+    margin: 0;
+    width: 100%;
+    border-left-width: 3px;
+    border-left-color: transparent;
+}
+
+.welcome-tab-btn:hover {
+    background-color: #2d2d2d;
+    color: #d4d4d4;
+}
+
+.welcome-tab-btn--active {
+    background-color: #2a3a50;
+    color: #7ec8e3;
+    border-left-color: #2d6a9f;
+    -unity-font-style: bold;
+}
+
+/* Content area */
+.welcome-content {
+    flex-grow: 1;
+    padding: 0;
+}
+
+.welcome-page-scroll {
+    flex-grow: 1;
+    padding: 16px 20px;
+}
+
+/* Footer */
+.welcome-footer {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #252525;
+    border-top-width: 1px;
+    border-top-color: #181818;
+    flex-shrink: 0;
+}
+
+.welcome-suppress-toggle {
+    font-size: 10px;
+    color: #6a6a6a;
+}
+
+.welcome-suppress-toggle Toggle {
+    font-size: 10px;
+    color: #6a6a6a;
+}
+
+.welcome-close-btn {
+    font-size: 11px;
+    min-width: 70px;
+    height: 24px;
+    background-color: #3a3a3a;
+    border-color: #555;
+    color: #c8c8c8;
+}
+
+/* Typography */
+.welcome-heading {
+    font-size: 15px;
+    -unity-font-style: bold;
+    color: #d4d4d4;
+    margin-bottom: 6px;
+    margin-top: 4px;
+}
+
+.welcome-subheading {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: #aaa;
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
+
+.welcome-para {
+    font-size: 11px;
+    color: #9a9a9a;
+    white-space: normal;
+    margin-bottom: 10px;
+}
+
+.welcome-tip {
+    font-size: 10px;
+    color: #7ec8a0;
+    background-color: #1a2e1a;
+    border-color: #2a4a2a;
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    white-space: normal;
+}
+
+.welcome-separator {
+    height: 1px;
+    background-color: #333;
+    margin: 12px 0;
+}
+
+/* Feature rows (Welcome page) */
+.welcome-feature-row {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.welcome-feature-icon {
+    font-size: 16px;
+    width: 28px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.welcome-feature-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #c8c8c8;
+}
+
+.welcome-feature-desc {
+    font-size: 10px;
+    color: #7a7a7a;
+    white-space: normal;
+}
+
+/* Numbered steps (Quick Start + Sheets Setup pages) */
+.welcome-step {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    background-color: #252525;
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.welcome-step-num {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: #2d6a9f;
+    width: 24px;
+    flex-shrink: 0;
+    -unity-text-align: upper-center;
+    margin-top: 1px;
+}
+
+.welcome-step-title {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #d4d4d4;
+    margin-bottom: 3px;
+}
+
+.welcome-step-body {
+    font-size: 10px;
+    color: #8a8a8a;
+    white-space: normal;
+}
+
+/* CTA / link buttons */
+.welcome-cta-btn {
+    font-size: 12px;
+    -unity-font-style: bold;
+    height: 32px;
+    margin-top: 12px;
+    background-color: #1a4a7a;
+    border-color: #2d6a9f;
+    color: #d0e8ff;
+    align-self: flex-start;
+    min-width: 200px;
+}
+
+.welcome-cta-btn:hover {
+    background-color: #245a8a;
+}
+
+.welcome-link-btn {
+    font-size: 11px;
+    height: 26px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #7ec8e3;
+    align-self: flex-start;
+    min-width: 220px;
+}
+
+.welcome-link-btn:hover {
+    background-color: #1a3a5c;
+    color: #aadcf0;
+}
+
+.welcome-version-label {
+    font-size: 13px;
+    -unity-font-style: bold;
+    color: #c8c8c8;
+    margin-bottom: 8px;
+}
 
 /* end of stylesheet */
+
