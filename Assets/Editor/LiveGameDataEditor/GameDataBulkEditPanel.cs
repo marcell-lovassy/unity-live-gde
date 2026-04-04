@@ -15,10 +15,11 @@ namespace LiveGameDataEditor.Editor
     {
         /// <summary>
         /// Raised when the user clicks an Apply button.
-        /// <c>Action&lt;GameDataEntry&gt;</c> is a mutation that should be applied to each selected entry.
+        /// <c>Action&lt;IGameDataEntry&gt;</c> is a mutation applied to each selected entry;
+        /// for entries that are not <see cref="GameDataEntry"/>, the action is a safe no-op.
         /// <c>string</c> is the Undo operation name.
         /// </summary>
-        public event Action<Action<GameDataEntry>, string> OnBulkApply;
+        public event Action<Action<IGameDataEntry>, string> OnBulkApply;
 
         private Label _titleLabel;
 
@@ -54,7 +55,7 @@ namespace LiveGameDataEditor.Editor
             fieldsRow.Add(BuildSection("Set Value", setValueField, () =>
             {
                 int v = setValueField.value;
-                OnBulkApply?.Invoke(e => e.Value = v, "Bulk Set Value");
+                OnBulkApply?.Invoke(e => { if (e is GameDataEntry ge) ge.Value = v; }, "Bulk Set Value");
             }));
 
             // ── Add to Value ───────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ namespace LiveGameDataEditor.Editor
             fieldsRow.Add(BuildSection("Add to Value", addValueField, () =>
             {
                 int v = addValueField.value;
-                OnBulkApply?.Invoke(e => e.Value += v, "Bulk Add to Value");
+                OnBulkApply?.Invoke(e => { if (e is GameDataEntry ge) ge.Value += v; }, "Bulk Add to Value");
             }));
 
             // ── Multiply Multiplier ────────────────────────────────────────────────
@@ -72,7 +73,7 @@ namespace LiveGameDataEditor.Editor
             fieldsRow.Add(BuildSection("Multiply Multiplier", multiplyField, () =>
             {
                 float v = multiplyField.value;
-                OnBulkApply?.Invoke(e => e.Multiplier *= v, "Bulk Multiply Multiplier");
+                OnBulkApply?.Invoke(e => { if (e is GameDataEntry ge) ge.Multiplier *= v; }, "Bulk Multiply Multiplier");
             }));
 
             // ── Set Enabled ────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ namespace LiveGameDataEditor.Editor
             fieldsRow.Add(BuildSection("Set Enabled", enabledToggle, () =>
             {
                 bool v = enabledToggle.value;
-                OnBulkApply?.Invoke(e => e.Enabled = v, "Bulk Set Enabled");
+                OnBulkApply?.Invoke(e => { if (e is GameDataEntry ge) ge.Enabled = v; }, "Bulk Set Enabled");
             }));
         }
 

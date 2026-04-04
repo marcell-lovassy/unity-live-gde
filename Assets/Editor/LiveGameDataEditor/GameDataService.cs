@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -176,6 +177,131 @@ namespace LiveGameDataEditor.Editor
         {
             if (validator == null) return true;
             return validator.Validate(entry, out _);
+        }
+
+        // ── IGameDataContainer generic overloads ───────────────────────────────────
+        // These overloads accept any IGameDataContainer and use IList for data access,
+        // making the service compatible with user-defined container types.
+
+        /// <summary>
+        /// Adds a default entry to <paramref name="container"/> using
+        /// <see cref="Activator.CreateInstance"/> on its declared entry type.
+        /// </summary>
+        public static void AddEntry(IGameDataContainer container)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null) return;
+
+            Undo.RecordObject(so, "Add Game Data Entry");
+            var entry = (IGameDataEntry)Activator.CreateInstance(container.EntryType);
+            container.GetEntries().Add(entry);
+            EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>Removes entries at the given indices with a single Undo operation.</summary>
+        public static void RemoveEntries(IGameDataContainer container, List<int> indices)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null || indices == null || indices.Count == 0) return;
+
+            Undo.RecordObject(so, indices.Count == 1
+                ? "Remove Game Data Entry"
+                : $"Remove {indices.Count} Game Data Entries");
+
+            IList entries = container.GetEntries();
+            var sorted = new List<int>(indices);
+            sorted.Sort();
+            for (int i = sorted.Count - 1; i >= 0; i--)
+            {
+                int idx = sorted[i];
+                if (idx >= 0 && idx < entries.Count)
+                    entries.RemoveAt(idx);
+            }
+            EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>Records Undo and replaces the entry at <paramref name="index"/>.</summary>
+        public static void UpdateEntry(IGameDataContainer container, int index, IGameDataEntry updated)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null) return;
+
+            IList entries = container.GetEntries();
+            if (index < 0 || index >= entries.Count) return;
+
+            Undo.RecordObject(so, "Edit Game Data Entry");
+            entries[index] = updated;
+            EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>
+        /// Applies <paramref name="applyAction"/> to every entry at <paramref name="indices"/>
+        /// under a single Undo operation.
+        /// </summary>
+        public static void BulkUpdateEntries(
+            IGameDataContainer container,
+            List<int> indices,
+            Action<IGameDataEntry> applyAction,
+            string undoName)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null || indices == null || indices.Count == 0 || applyAction == null) return;
+
+            Undo.RecordObject(so, undoName);
+            IList entries = container.GetEntries();
+            foreach (int i in indices)
+            {
+                if (i >= 0 && i < entries.Count)
+                    applyAction((IGameDataEntry)entries[i]);
+            }
+            EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>Marks the container dirty. No-op if not a ScriptableObject.</summary>
+        public static void MarkDirty(IGameDataContainer container)
+        {
+            if (container is ScriptableObject so)
+                EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>
+        /// Exports data to JSON. Currently only supports <see cref="GameDataContainer"/>;
+        /// shows an informational dialog for custom container types.
+        /// </summary>
+        public static void ExportToJson(IGameDataContainer container)
+        {
+            if (container is GameDataContainer gc) { ExportToJson(gc); return; }
+            if (container == null) return;
+            EditorUtility.DisplayDialog(
+                "Export Not Supported",
+                "JSON export is only supported for the built-in GameDataContainer type.\n\n" +
+                "Implement a custom export method for your container type.",
+                "OK");
+        }
+
+        /// <summary>
+        /// Imports JSON data. Currently only supports <see cref="GameDataContainer"/>;
+        /// shows an informational dialog for custom container types.
+        /// </summary>
+        public static void ImportFromJson(IGameDataContainer container)
+        {
+            if (container is GameDataContainer gc) { ImportFromJson(gc); return; }
+            if (container == null) return;
+            EditorUtility.DisplayDialog(
+                "Import Not Supported",
+                "JSON import is only supported for the built-in GameDataContainer type.\n\n" +
+                "Implement a custom import method for your container type.",
+                "OK");
+        }
+
+        // Returns the container cast to ScriptableObject, logging a warning if the cast fails.
+        private static ScriptableObject GetScriptableObject(IGameDataContainer container)
+        {
+            if (container == null) return null;
+            var so = container as ScriptableObject;
+            if (so == null)
+                Debug.LogWarning("[LiveGameDataEditor] Container does not inherit ScriptableObject; changes will not be saved.");
+            return so;
         }
 
         // ── Private helpers ────────────────────────────────────────────────────────

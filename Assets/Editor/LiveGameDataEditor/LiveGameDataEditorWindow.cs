@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -12,7 +11,7 @@ namespace LiveGameDataEditor.Editor
     /// Open via: Tools > Game Data Editor
     ///
     /// Orchestrates:
-    ///   - Asset picker and creation
+    ///   - Asset selection / creation (<see cref="GameDataSelectionBar"/>)
     ///   - Search / filter toolbar
     ///   - Table view (<see cref="GameDataTableView"/>)
     ///   - Bulk edit panel (<see cref="GameDataBulkEditPanel"/>)
@@ -21,12 +20,12 @@ namespace LiveGameDataEditor.Editor
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
-        private GameDataContainer     _container;
+        private IGameDataContainer    _container;
+        private GameDataSelectionBar  _selectionBar;
         private GameDataTableView     _tableView;
         private GameDataBulkEditPanel _bulkEditPanel;
         private VisualElement         _emptyState;
         private VisualElement         _contentArea;
-        private ObjectField           _containerField;
 
         // Toolbar filter state
         private string _searchText  = string.Empty;
@@ -55,35 +54,39 @@ namespace LiveGameDataEditor.Editor
             rootVisualElement.style.flexDirection = FlexDirection.Column;
             rootVisualElement.style.flexGrow      = 1;
 
+            BuildSelectionBar();
             BuildToolbar();
             BuildEmptyState();
             BuildContentArea();
             RefreshView();
         }
 
-        // ── Toolbar ────────────────────────────────────────────────────────────────
+        // ── Selection bar ──────────────────────────────────────────────────────────
+
+        private void BuildSelectionBar()
+        {
+            _selectionBar = new GameDataSelectionBar();
+            _selectionBar.OnContainerSelected += container =>
+            {
+                _container   = container;
+                _searchText  = string.Empty;
+                _enabledOnly = false;
+                RefreshView();
+            };
+            _selectionBar.OnContainerCleared += () =>
+            {
+                _container = null;
+                RefreshView();
+            };
+            rootVisualElement.Add(_selectionBar);
+        }
+
+        // ── Toolbar (search / filter / JSON) ───────────────────────────────────────
 
         private void BuildToolbar()
         {
             var toolbar = new VisualElement();
             toolbar.AddToClassList("toolbar");
-
-            // Asset picker
-            _containerField = new ObjectField("Data Asset")
-            {
-                objectType        = typeof(GameDataContainer),
-                allowSceneObjects = false,
-                value             = _container
-            };
-            _containerField.style.flexGrow = 1;
-            _containerField.RegisterValueChangedCallback(evt =>
-            {
-                _container   = evt.newValue as GameDataContainer;
-                _searchText  = string.Empty;
-                _enabledOnly = false;
-                RefreshView();
-            });
-            toolbar.Add(_containerField);
 
             // Search field
             var searchField = new TextField { value = _searchText };
@@ -126,11 +129,13 @@ namespace LiveGameDataEditor.Editor
             _emptyState.AddToClassList("empty-state");
 
             var label = new Label(
-                "No Game Data Container selected.\n" +
-                "Select an existing asset above, or create a new one.");
+                "No data asset selected.\n" +
+                "Use the picker above to select an existing asset, or create a new one.");
             label.AddToClassList("empty-state-label");
 
-            var createBtn = new Button(CreateNewAsset) { text = "＋ Create New Data Asset" };
+            // Delegate to the selection bar so the same GenericMenu is shown.
+            var createBtn = new Button(() => _selectionBar.TriggerCreateNew())
+                { text = "＋ Create New Data Asset" };
             createBtn.AddToClassList("create-btn");
 
             _emptyState.Add(label);
@@ -138,7 +143,7 @@ namespace LiveGameDataEditor.Editor
             rootVisualElement.Add(_emptyState);
         }
 
-        // Data type subtitle label — populated from GameDataAttribute when a container is loaded
+        // Data type subtitle label — populated from GameDataAttribute when a container is loaded.
         private Label _dataTypeLabel;
 
         // ── Content area ───────────────────────────────────────────────────────────
@@ -150,7 +155,7 @@ namespace LiveGameDataEditor.Editor
             _contentArea.style.flexGrow      = 1;
             _contentArea.style.flexDirection = FlexDirection.Column;
 
-            // Subtitle showing the entry type's display name (from GameDataAttribute)
+            // Subtitle showing the entry type's friendly display name.
             _dataTypeLabel = new Label(string.Empty);
             _dataTypeLabel.AddToClassList("data-type-label");
             _contentArea.Add(_dataTypeLabel);
@@ -178,21 +183,23 @@ namespace LiveGameDataEditor.Editor
             _emptyState.style.display  = has ? DisplayStyle.None : DisplayStyle.Flex;
             _contentArea.style.display = has ? DisplayStyle.Flex : DisplayStyle.None;
 
-            if (!has) return;
+            if (!has)
+            {
+                _selectionBar.UpdateInfo(null);
+                return;
+            }
 
-            // Resolve the display name from GameDataAttribute, falling back to the type name
-            var entryType = _container.EntryType;
-            var attr = entryType.GetCustomAttributes(typeof(GameDataAttribute), inherit: false);
-            string displayName = attr.Length > 0 && !string.IsNullOrEmpty(((GameDataAttribute)attr[0]).DisplayName)
-                ? ((GameDataAttribute)attr[0]).DisplayName
-                : entryType.Name;
-            _dataTypeLabel.text = displayName;
+            // Update content area subtitle from GameDataAttribute (or type name fallback).
+            _dataTypeLabel.text = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
 
             _tableView.Populate(_container);
             _tableView.SetFilter(_searchText, _enabledOnly);
             _bulkEditPanel.style.display = DisplayStyle.None;
             _currentSelection.Clear();
             RunValidation();
+
+            // Update the selection bar info label AFTER populate so the row count is current.
+            _selectionBar.UpdateInfo(_container);
         }
 
         private void RunValidation()
@@ -204,19 +211,6 @@ namespace LiveGameDataEditor.Editor
 
         // ── Toolbar callbacks ──────────────────────────────────────────────────────
 
-        private void CreateNewAsset()
-        {
-            string path = EditorUtility.SaveFilePanelInProject(
-                "Create Game Data Container",
-                "NewGameData", "asset",
-                "Choose a location for the new GameDataContainer asset.");
-            if (string.IsNullOrEmpty(path)) return;
-
-            _container = GameDataService.CreateNewContainer(path);
-            _containerField.SetValueWithoutNotify(_container);
-            RefreshView();
-        }
-
         private void ImportAndRefresh()
         {
             GameDataService.ImportFromJson(_container);
@@ -227,7 +221,7 @@ namespace LiveGameDataEditor.Editor
 
         private void OnEntryChanged(int index, IGameDataEntry updated)
         {
-            GameDataService.UpdateEntry(_container, index, (GameDataEntry)updated);
+            GameDataService.UpdateEntry(_container, index, updated);
             RunValidation();
         }
 
@@ -255,7 +249,7 @@ namespace LiveGameDataEditor.Editor
 
         // ── Bulk edit callback ─────────────────────────────────────────────────────
 
-        private void HandleBulkApply(Action<GameDataEntry> applyAction, string undoName)
+        private void HandleBulkApply(Action<IGameDataEntry> applyAction, string undoName)
         {
             if (_container == null || _currentSelection.Count == 0) return;
             GameDataService.BulkUpdateEntries(_container, _currentSelection, applyAction, undoName);

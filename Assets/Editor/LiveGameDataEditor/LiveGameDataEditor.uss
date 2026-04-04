@@ -3,6 +3,36 @@
    Compatible with Unity 2022.3+ UI Toolkit dark theme.
    ============================================================ */
 
+/* ── Selection bar (asset picker row) ────────────────────── */
+.selection-bar {
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: #2a2a2a;
+    border-bottom-width: 1px;
+    border-bottom-color: #1a1a1a;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+/* Compact info label: "EnemyData (12 rows)" */
+.data-info-label {
+    color: #8ab4d4;
+    font-size: 11px;
+    min-width: 120px;
+    margin-left: 8px;
+    margin-right: 4px;
+    -unity-text-align: middle-left;
+    flex-shrink: 1;
+}
+
+.create-new-btn {
+    min-width: 100px;
+    height: 22px;
+    font-size: 11px;
+    margin-left: 4px;
+}
+
 /* ── Toolbar ──────────────────────────────────────────────── */
 .toolbar {
     flex-direction: row;
