@@ -57,6 +57,7 @@ namespace LiveGameDataEditor.Editor
         private readonly Dictionary<string, VisualElement> _headerCells = new();
 
         // Stats footer
+        private VisualElement    _statsClip;
         private VisualElement    _statsRow;
         private readonly List<Label> _statsLabels  = new();
         private readonly Dictionary<string, Label> _statsCells = new();
@@ -78,12 +79,26 @@ namespace LiveGameDataEditor.Editor
             style.flexGrow = 1;
             style.flexDirection = FlexDirection.Column;
 
+            // Header clip container — overflow:hidden so translated header is clipped correctly
+            var headerClip = new VisualElement();
+            headerClip.AddToClassList("table-header-clip");
+            Add(headerClip);
+
             // Placeholder header — rebuilt in Populate() once we know the entry type
             _headerRow = new VisualElement();
             _headerRow.AddToClassList("table-header");
-            Add(_headerRow);
+            headerClip.Add(_headerRow);
 
             BuildScrollView();
+
+            // Sync header and stats horizontal position with the ScrollView's horizontal offset
+            _scrollView.horizontalScroller.valueChanged += offset =>
+            {
+                var pos = new Vector3(-offset, 0, 0);
+                _headerRow.transform.position = pos;
+                if (_statsRow != null) _statsRow.transform.position = pos;
+            };
+
             BuildStatsRow();
             BuildFooter();
         }
@@ -296,9 +311,13 @@ namespace LiveGameDataEditor.Editor
         /// <summary>Creates the stats row VisualElement (called once in constructor).</summary>
         private void BuildStatsRow()
         {
+            _statsClip = new VisualElement();
+            _statsClip.AddToClassList("table-stats-clip");
+            Add(_statsClip);
+
             _statsRow = new VisualElement();
             _statsRow.AddToClassList("stats-row");
-            Add(_statsRow); // inserted after _scrollView, before footer
+            _statsClip.Add(_statsRow);
         }
 
         /// <summary>

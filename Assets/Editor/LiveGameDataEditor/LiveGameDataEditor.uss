@@ -91,6 +91,16 @@
     flex-direction: column;
 }
 
+/* Clip containers for header and stats rows.
+   overflow:hidden ensures that when the inner row is translated
+   horizontally (to sync with the scroll view), content outside
+   the visible region is correctly clipped. */
+.table-header-clip,
+.table-stats-clip {
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
 /* ── Data type subtitle label ─────────────────────────────── */
 .data-type-label {
     -unity-font-style: bold;
