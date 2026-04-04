@@ -61,7 +61,7 @@ namespace LiveGameDataEditor.Editor
         public bool IsEnum        => FieldType.IsEnum;
 
         /// <summary>True for any <c>UnityEngine.Object</c> subtype (Sprite, AudioClip, etc.).</summary>
-        public bool IsUnityObject => typeof(Object).IsAssignableFrom(FieldType);
+        public bool IsUnityObject => typeof(UnityEngine.Object).IsAssignableFrom(FieldType);
 
         // ── Constructor ────────────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ namespace LiveGameDataEditor.Editor
             else if (f.FieldType == typeof(string))                     { flexGrow = 3f;   minWidth = 120f; }
             else if (f.FieldType == typeof(bool))                       { flexGrow = 0f;   minWidth = 64f;  }
             else if (f.FieldType.IsEnum)                                { flexGrow = 1.5f; minWidth = 110f; }
-            else if (typeof(Object).IsAssignableFrom(f.FieldType))     { flexGrow = 1.5f; minWidth = 130f; }
+            else if (typeof(UnityEngine.Object).IsAssignableFrom(f.FieldType))     { flexGrow = 1.5f; minWidth = 130f; }
             else                                                        { flexGrow = 1f;   minWidth = 60f;  }
 
             return new GameDataColumnDefinition(

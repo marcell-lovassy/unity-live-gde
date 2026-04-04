@@ -197,7 +197,7 @@ namespace LiveGameDataEditor.Editor
             }
             else if (col.IsUnityObject)
             {
-                var objVal = _fieldValues[name] as Object;
+                var objVal = _fieldValues[name] as UnityEngine.Object;
                 var of = new ObjectField { objectType = col.FieldType, value = objVal };
                 of.RegisterValueChangedCallback(evt =>
                 {

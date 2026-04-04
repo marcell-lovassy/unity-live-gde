@@ -128,7 +128,7 @@ namespace LiveGameDataEditor.Editor
         private sealed class UnityObjectJsonConverter : JsonConverter
         {
             public override bool CanConvert(Type objectType)
-                => typeof(Object).IsAssignableFrom(objectType);
+                => typeof(UnityEngine.Object).IsAssignableFrom(objectType);
 
             public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
             {
@@ -138,7 +138,7 @@ namespace LiveGameDataEditor.Editor
                     return;
                 }
 
-                string path = AssetDatabase.GetAssetPath((Object)value);
+                string path = AssetDatabase.GetAssetPath((UnityEngine.Object)value);
                 writer.WriteStartObject();
                 writer.WritePropertyName("__assetPath");
                 writer.WriteValue(path);

@@ -20,7 +20,7 @@ namespace LiveGameDataEditor
         public int Damage;
         public EnemyType EnemyType;
         [ColumnHeader("Drop Tags")]
-        [ListField(", ")]
+        [ListField(",")]
         public List<string> DropTags;
         public bool Enabled;
 
