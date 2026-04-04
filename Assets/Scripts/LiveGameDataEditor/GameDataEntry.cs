@@ -8,6 +8,7 @@ namespace LiveGameDataEditor
     /// Implements <see cref="IGameDataEntry"/> via explicit property so the public field
     /// remains the serialization target (Unity serializes fields, not auto-properties).
     /// </summary>
+    [GameData(DisplayName = "Game Data")]
     [Serializable]
     public class GameDataEntry : IGameDataEntry
     {

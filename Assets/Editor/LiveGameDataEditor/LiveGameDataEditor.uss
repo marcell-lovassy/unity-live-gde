@@ -61,6 +61,17 @@
     flex-direction: column;
 }
 
+/* ── Data type subtitle label ─────────────────────────────── */
+.data-type-label {
+    -unity-font-style: bold;
+    color: #8ab4d4;
+    font-size: 11px;
+    padding: 4px 10px 2px 10px;
+    border-bottom-width: 1px;
+    border-bottom-color: #2a2a2a;
+    flex-shrink: 0;
+}
+
 /* ── Column widths (shared by header cells and row fields) ─── */
 .col-gutter {
     width: 8px;

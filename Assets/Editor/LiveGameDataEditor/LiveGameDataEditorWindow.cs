@@ -138,6 +138,9 @@ namespace LiveGameDataEditor.Editor
             rootVisualElement.Add(_emptyState);
         }
 
+        // Data type subtitle label — populated from GameDataAttribute when a container is loaded
+        private Label _dataTypeLabel;
+
         // ── Content area ───────────────────────────────────────────────────────────
 
         private void BuildContentArea()
@@ -146,6 +149,11 @@ namespace LiveGameDataEditor.Editor
             _contentArea.AddToClassList("content-area");
             _contentArea.style.flexGrow      = 1;
             _contentArea.style.flexDirection = FlexDirection.Column;
+
+            // Subtitle showing the entry type's display name (from GameDataAttribute)
+            _dataTypeLabel = new Label(string.Empty);
+            _dataTypeLabel.AddToClassList("data-type-label");
+            _contentArea.Add(_dataTypeLabel);
 
             _tableView = new GameDataTableView(
                 onEntryChanged:  OnEntryChanged,
@@ -171,6 +179,14 @@ namespace LiveGameDataEditor.Editor
             _contentArea.style.display = has ? DisplayStyle.Flex : DisplayStyle.None;
 
             if (!has) return;
+
+            // Resolve the display name from GameDataAttribute, falling back to the type name
+            var entryType = _container.EntryType;
+            var attr = entryType.GetCustomAttributes(typeof(GameDataAttribute), inherit: false);
+            string displayName = attr.Length > 0 && !string.IsNullOrEmpty(((GameDataAttribute)attr[0]).DisplayName)
+                ? ((GameDataAttribute)attr[0]).DisplayName
+                : entryType.Name;
+            _dataTypeLabel.text = displayName;
 
             _tableView.Populate(_container);
             _tableView.SetFilter(_searchText, _enabledOnly);
