@@ -24,8 +24,9 @@ namespace LiveGameDataEditor.Editor
 
         /// <summary>Called when a row field is edited. Args: (rowIndex, newEntryInstance).</summary>
         private readonly Action<int, IGameDataEntry> _onEntryChanged;
-        private readonly Action _onAddEntry;
-        private readonly Action<List<int>> _onRemoveEntries;
+        private readonly Action                      _onAddEntry;
+        private readonly Action<List<int>>           _onRemoveEntries;
+        private readonly Action<List<int>>           _onDuplicateEntries;
 
         /// <summary>Fired whenever the selection changes. Argument = selected data indices.</summary>
         public event Action<List<int>> OnSelectionChanged;
@@ -49,12 +50,14 @@ namespace LiveGameDataEditor.Editor
 
         public GameDataTableView(
             Action<int, IGameDataEntry> onEntryChanged,
-            Action onAddEntry,
-            Action<List<int>> onRemoveEntries)
+            Action                      onAddEntry,
+            Action<List<int>>           onRemoveEntries,
+            Action<List<int>>           onDuplicateEntries = null)
         {
-            _onEntryChanged  = onEntryChanged;
-            _onAddEntry      = onAddEntry;
-            _onRemoveEntries = onRemoveEntries;
+            _onEntryChanged     = onEntryChanged;
+            _onAddEntry         = onAddEntry;
+            _onRemoveEntries    = onRemoveEntries;
+            _onDuplicateEntries = onDuplicateEntries;
 
             AddToClassList("table-view");
             style.flexGrow = 1;
@@ -96,8 +99,9 @@ namespace LiveGameDataEditor.Editor
                 var entry = (IGameDataEntry)entries[capturedIndex];
                 var row = new GameDataRowView(entry, _columns, i % 2 == 1);
 
-                row.OnEntryChanged    += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
+                row.OnEntryChanged     += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
                 row.OnSelectionToggled += (isMulti) => HandleRowSelection(capturedIndex, isMulti);
+                row.OnRequestNextRow   += colIndex  => NavigateToNextRow(row, colIndex);
 
                 _rows.Add(row);
             }
@@ -177,14 +181,18 @@ namespace LiveGameDataEditor.Editor
             var footer = new VisualElement();
             footer.AddToClassList("table-footer");
 
-            var addBtn    = new Button(() => _onAddEntry?.Invoke()) { text = "+ Add Row" };
+            var addBtn = new Button(() => _onAddEntry?.Invoke()) { text = "+ Add Row" };
             addBtn.AddToClassList("footer-button");
+
+            var duplicateBtn = new Button(DuplicateSelected) { text = "⧉ Duplicate" };
+            duplicateBtn.AddToClassList("footer-button");
 
             var removeBtn = new Button(RemoveSelected) { text = "− Remove Selected" };
             removeBtn.AddToClassList("footer-button");
             removeBtn.AddToClassList("footer-button--danger");
 
             footer.Add(addBtn);
+            footer.Add(duplicateBtn);
             footer.Add(removeBtn);
             Add(footer);
         }
@@ -305,6 +313,25 @@ namespace LiveGameDataEditor.Editor
         {
             if (_selectedIndices.Count == 0) return;
             _onRemoveEntries?.Invoke(new List<int>(_selectedIndices));
+        }
+
+        private void DuplicateSelected()
+        {
+            if (_selectedIndices.Count == 0) return;
+            _onDuplicateEntries?.Invoke(new List<int>(_selectedIndices));
+        }
+
+        // ── Keyboard navigation ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Called by a row's <see cref="GameDataRowView.OnRequestNextRow"/> event.
+        /// Finds the next visible row and focuses the same column.
+        /// </summary>
+        private void NavigateToNextRow(GameDataRowView sourceRow, int colIndex)
+        {
+            int visibleIndex = _scrollView.IndexOf(sourceRow);
+            if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1) return;
+            (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────────

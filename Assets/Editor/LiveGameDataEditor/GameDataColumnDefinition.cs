@@ -1,20 +1,29 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
     /// Describes a single column in the data table: the reflected field it maps to,
-    /// its display label, and default sizing values.
-    /// Instances are generated via <see cref="FromType{T}"/> and cached.
+    /// its display label, widget type, and default sizing values.
+    ///
+    /// Supports <see cref="ColumnHeaderAttribute"/> for custom labels and
+    /// <see cref="ListFieldAttribute"/> for <c>List&lt;T&gt;</c> / <c>T[]</c> fields.
+    /// Instances are generated via <see cref="FromType"/> and cached per entry type.
     /// </summary>
     public sealed class GameDataColumnDefinition
     {
+        // ── Core ───────────────────────────────────────────────────────────────────
+
         /// <summary>The reflected public instance field this column maps to.</summary>
         public FieldInfo Field { get; }
 
-        /// <summary>Display label shown in the column header.</summary>
+        /// <summary>
+        /// Display label shown in the column header.
+        /// Sourced from <see cref="ColumnHeaderAttribute"/> when present; otherwise the field name.
+        /// </summary>
         public string Label { get; }
 
         /// <summary>The field's declared CLR type.</summary>
@@ -26,19 +35,53 @@ namespace LiveGameDataEditor.Editor
         /// <summary>Minimum pixel width of the column.</summary>
         public float MinWidth { get; }
 
-        // Type shorthand helpers used by row views to pick the right input widget.
-        public bool IsString => FieldType == typeof(string);
-        public bool IsInt    => FieldType == typeof(int);
-        public bool IsFloat  => FieldType == typeof(float);
-        public bool IsBool   => FieldType == typeof(bool);
+        // ── List field support ─────────────────────────────────────────────────────
 
-        public GameDataColumnDefinition(FieldInfo field, float flexGrow, float minWidth)
+        /// <summary>
+        /// True when the field is a <c>List&lt;T&gt;</c> or <c>T[]</c> decorated with
+        /// <see cref="ListFieldAttribute"/>. The row renders it as a single text cell.
+        /// </summary>
+        public bool IsList { get; }
+
+        /// <summary>
+        /// Separator used to join list items for display and to split edited text back
+        /// into items. Comes from <see cref="ListFieldAttribute.Separator"/>.
+        /// </summary>
+        public string ListSeparator { get; }
+
+        /// <summary>The element type of the list (e.g. <c>string</c>, <c>int</c>).</summary>
+        public Type ElementType { get; }
+
+        // ── Type shorthand helpers (pick the right input widget) ───────────────────
+
+        public bool IsString      => FieldType == typeof(string);
+        public bool IsInt         => FieldType == typeof(int);
+        public bool IsFloat       => FieldType == typeof(float);
+        public bool IsBool        => FieldType == typeof(bool);
+        public bool IsEnum        => FieldType.IsEnum;
+
+        /// <summary>True for any <c>UnityEngine.Object</c> subtype (Sprite, AudioClip, etc.).</summary>
+        public bool IsUnityObject => typeof(Object).IsAssignableFrom(FieldType);
+
+        // ── Constructor ────────────────────────────────────────────────────────────
+
+        private GameDataColumnDefinition(
+            FieldInfo field,
+            string    label,
+            float     flexGrow,
+            float     minWidth,
+            bool      isList,
+            string    listSeparator,
+            Type      elementType)
         {
-            Field     = field;
-            Label     = field.Name;
-            FieldType = field.FieldType;
-            FlexGrow  = flexGrow;
-            MinWidth  = minWidth;
+            Field         = field;
+            Label         = label;
+            FieldType     = field.FieldType;
+            FlexGrow      = flexGrow;
+            MinWidth      = minWidth;
+            IsList        = isList;
+            ListSeparator = listSeparator;
+            ElementType   = elementType;
         }
 
         // ── Static factory ─────────────────────────────────────────────────────────
@@ -65,12 +108,46 @@ namespace LiveGameDataEditor.Editor
             return defs;
         }
 
-        /// <summary>Assigns sensible default sizing based on field type.</summary>
         private static GameDataColumnDefinition BuildDef(FieldInfo f)
         {
-            if (f.FieldType == typeof(string)) return new GameDataColumnDefinition(f, flexGrow: 3f, minWidth: 120f);
-            if (f.FieldType == typeof(bool))   return new GameDataColumnDefinition(f, flexGrow: 0f, minWidth: 64f);
-            return new GameDataColumnDefinition(f, flexGrow: 1f, minWidth: 60f);
+            // Label: prefer [ColumnHeader] attribute, fall back to field name.
+            var headerAttr = f.GetCustomAttribute<ColumnHeaderAttribute>();
+            string label = headerAttr?.Label ?? f.Name;
+
+            // List detection: [ListField] is required; auto-detects List<T> and T[].
+            bool   isList    = false;
+            string separator = ", ";
+            Type   elemType  = null;
+
+            var listAttr = f.GetCustomAttribute<ListFieldAttribute>();
+            if (listAttr != null)
+            {
+                separator = listAttr.Separator;
+                if (f.FieldType.IsGenericType &&
+                    f.FieldType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    isList   = true;
+                    elemType = f.FieldType.GetGenericArguments()[0];
+                }
+                else if (f.FieldType.IsArray)
+                {
+                    isList   = true;
+                    elemType = f.FieldType.GetElementType();
+                }
+            }
+
+            // Sizing — most specific type wins.
+            float flexGrow, minWidth;
+            if      (isList)                                            { flexGrow = 3f;   minWidth = 150f; }
+            else if (f.FieldType == typeof(string))                     { flexGrow = 3f;   minWidth = 120f; }
+            else if (f.FieldType == typeof(bool))                       { flexGrow = 0f;   minWidth = 64f;  }
+            else if (f.FieldType.IsEnum)                                { flexGrow = 1.5f; minWidth = 110f; }
+            else if (typeof(Object).IsAssignableFrom(f.FieldType))     { flexGrow = 1.5f; minWidth = 130f; }
+            else                                                        { flexGrow = 1f;   minWidth = 60f;  }
+
+            return new GameDataColumnDefinition(
+                f, label, flexGrow, minWidth, isList, separator, elemType);
         }
     }
 }
+

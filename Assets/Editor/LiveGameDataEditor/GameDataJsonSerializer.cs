@@ -1,6 +1,7 @@
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace LiveGameDataEditor.Editor
@@ -10,6 +11,9 @@ namespace LiveGameDataEditor.Editor
     /// <c>Newtonsoft.Json</c> (<c>com.unity.nuget.newtonsoft-json</c>).
     ///
     /// Public fields are serialized by default — no custom contract resolver required.
+    /// <see cref="UnityEngine.Object"/> subtype fields (Sprite, AudioClip, etc.) are
+    /// serialized as <c>{ "__assetPath": "Assets/..." }</c> and restored via
+    /// <see cref="AssetDatabase.LoadAssetAtPath"/>.
     ///
     /// Output format:
     /// <code>
@@ -22,13 +26,19 @@ namespace LiveGameDataEditor.Editor
     /// }
     /// </code>
     ///
-    /// Backward compat: also imports the legacy <c>{"Entries":[...]}</c> format produced
-    /// by the old <c>GameDataJsonWrapper</c>-based export.
+    /// Backward compat: also imports the legacy <c>{"Entries":[...]}</c> format.
     /// </summary>
     public class GameDataJsonSerializer : IGameDataSerializer
     {
-        /// <summary>Shared default instance.</summary>
+        /// <summary>Shared default instance (includes UnityObject converter).</summary>
         public static GameDataJsonSerializer Default { get; } = new GameDataJsonSerializer();
+
+        // Shared Newtonsoft serializer with Unity asset-reference support.
+        private static readonly JsonSerializer _serializer = JsonSerializer.Create(
+            new JsonSerializerSettings
+            {
+                Converters = { new UnityObjectJsonConverter() },
+            });
 
         // ── IGameDataSerializer ────────────────────────────────────────────────────
 
@@ -37,10 +47,10 @@ namespace LiveGameDataEditor.Editor
         {
             if (container == null) return "{}";
 
-            var entries = container.GetEntries();
+            var entries      = container.GetEntries();
             var entriesArray = new JArray();
             foreach (var entry in entries)
-                entriesArray.Add(JToken.FromObject(entry));
+                entriesArray.Add(JToken.FromObject(entry, _serializer));
 
             var root = new JObject
             {
@@ -54,7 +64,7 @@ namespace LiveGameDataEditor.Editor
         /// <inheritdoc/>
         /// <remarks>
         /// The caller must call <c>Undo.RecordObject</c> and <c>EditorUtility.SetDirty</c>
-        /// around this method — this class does not depend on UnityEditor APIs.
+        /// around this method — this class does not depend on UnityEditor APIs directly.
         /// </remarks>
         public void Deserialize(string json, IGameDataContainer container)
         {
@@ -71,7 +81,7 @@ namespace LiveGameDataEditor.Editor
                 return;
             }
 
-            // Warn (don't block) if the file's entry type doesn't match the target container.
+            // Warn (don't block) if the file's entry type doesn't match.
             string storedType = root["entryType"]?.Value<string>();
             if (!string.IsNullOrEmpty(storedType) && storedType != container.EntryType.FullName)
             {
@@ -81,7 +91,7 @@ namespace LiveGameDataEditor.Editor
                     "Attempting import anyway — unrecognised fields will be ignored.");
             }
 
-            // Support both the current "entries" key and the legacy "Entries" key.
+            // Support both "entries" (current) and "Entries" (legacy) keys.
             var entriesNode = (root["entries"] ?? root["Entries"]) as JArray;
             if (entriesNode == null)
             {
@@ -96,7 +106,7 @@ namespace LiveGameDataEditor.Editor
             {
                 try
                 {
-                    var entry = (IGameDataEntry)token.ToObject(container.EntryType);
+                    var entry = (IGameDataEntry)token.ToObject(container.EntryType, _serializer);
                     if (entry != null)
                         targetList.Add(entry);
                 }
@@ -104,6 +114,51 @@ namespace LiveGameDataEditor.Editor
                 {
                     Debug.LogError($"[LiveGameDataEditor] Failed to deserialize entry: {ex.Message}");
                 }
+            }
+        }
+
+        // ── UnityObjectJsonConverter ───────────────────────────────────────────────
+
+        /// <summary>
+        /// Converts <see cref="UnityEngine.Object"/> subtype fields to/from a simple
+        /// asset-path token so they survive JSON round-trips without losing the reference.
+        ///
+        /// Serialized form: <c>{ "__assetPath": "Assets/Art/hero.png" }</c>
+        /// </summary>
+        private sealed class UnityObjectJsonConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+                => typeof(Object).IsAssignableFrom(objectType);
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                if (value == null)
+                {
+                    writer.WriteNull();
+                    return;
+                }
+
+                string path = AssetDatabase.GetAssetPath((Object)value);
+                writer.WriteStartObject();
+                writer.WritePropertyName("__assetPath");
+                writer.WriteValue(path);
+                writer.WriteEndObject();
+            }
+
+            public override object ReadJson(
+                JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                if (reader.TokenType == JsonToken.Null)
+                {
+                    reader.Read();
+                    return null;
+                }
+
+                var jo   = JObject.Load(reader);
+                string path = jo["__assetPath"]?.Value<string>();
+                if (string.IsNullOrEmpty(path)) return null;
+
+                return AssetDatabase.LoadAssetAtPath(path, objectType);
             }
         }
     }

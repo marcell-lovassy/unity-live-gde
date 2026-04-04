@@ -1,19 +1,27 @@
 using System;
+using System.Collections.Generic;
 
 namespace LiveGameDataEditor
 {
+    /// <summary>Difficulty tier of an enemy — demonstrates enum field support.</summary>
+    public enum EnemyType { Normal, Elite, Boss }
+
     /// <summary>
-    /// A single row of game data. Serializable so it works with both ScriptableObject and JsonUtility.
-    /// Implements <see cref="IGameDataEntry"/> via explicit property so the public field
-    /// remains the serialization target (Unity serializes fields, not auto-properties).
+    /// Example game data entry demonstrating all supported field types:
+    ///   string, int, bool, enum, and List&lt;string&gt; with [ListField].
     /// </summary>
     [GameData(DisplayName = "Enemy")]
     [Serializable]
     public class EnemyDataEntry : IGameDataEntry
     {
         public string Id;
+        [ColumnHeader("HP")]
         public int Health;
         public int Damage;
+        public EnemyType EnemyType;
+        [ColumnHeader("Drop Tags")]
+        [ListField(", ")]
+        public List<string> DropTags;
         public bool Enabled;
 
         // Explicit interface implementation — routes through the public serialized field.
@@ -21,19 +29,13 @@ namespace LiveGameDataEditor
 
         public EnemyDataEntry()
         {
-            Id = "new_entry";
-            Health = 100;
-            Damage = 10;
-            Enabled = true;
+            Id        = "new_entry";
+            Health    = 100;
+            Damage    = 10;
+            EnemyType = EnemyType.Normal;
+            DropTags  = new List<string>();
+            Enabled   = true;
         }
-
-        /// <summary>Creates a shallow copy of this entry.</summary>
-        public EnemyDataEntry Clone() => new EnemyDataEntry
-        {
-            Id = Id,
-            Health = Health,
-            Damage = Damage,
-            Enabled = Enabled
-        };
     }
 }
+

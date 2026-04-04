@@ -211,9 +211,23 @@
 /* Remove margin/border from inline fields for compactness */
 .table-row TextField,
 .table-row IntegerField,
-.table-row FloatField {
+.table-row FloatField,
+.table-row EnumField,
+.table-row ObjectField {
     margin: 0;
     border-radius: 0;
+}
+
+/* ObjectField thumbnail stays compact */
+.table-row ObjectField > .unity-object-field__input {
+    min-height: 18px;
+}
+
+/* Toggle alignment in rows */
+.table-row Toggle {
+    margin: 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .col-readonly {

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -172,6 +173,59 @@ namespace LiveGameDataEditor.Editor
         {
             if (container is ScriptableObject so)
                 EditorUtility.SetDirty(so);
+        }
+
+        // ── Entry duplication ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates a deep copy of each entry at the given indices and inserts the clones
+        /// immediately after their originals. Wrapped in a single Undo operation.
+        /// Handles <c>List&lt;T&gt;</c> and array fields by cloning the collection.
+        /// </summary>
+        public static void DuplicateEntries(IGameDataContainer container, List<int> indices)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null || indices == null || indices.Count == 0) return;
+
+            Undo.RecordObject(so, indices.Count == 1
+                ? "Duplicate Entry"
+                : $"Duplicate {indices.Count} Entries");
+
+            IList entries = container.GetEntries();
+            var sorted = new List<int>(indices);
+            sorted.Sort();
+
+            // Insert in reverse order so earlier insertions don't shift later indices.
+            for (int i = sorted.Count - 1; i >= 0; i--)
+            {
+                int idx = sorted[i];
+                if (idx < 0 || idx >= entries.Count) continue;
+                var clone = CloneEntry((IGameDataEntry)entries[idx], container.EntryType);
+                entries.Insert(idx + 1, clone);
+            }
+
+            EditorUtility.SetDirty(so);
+        }
+
+        private static IGameDataEntry CloneEntry(IGameDataEntry source, Type entryType)
+        {
+            var clone = (IGameDataEntry)Activator.CreateInstance(entryType);
+            foreach (var field in entryType.GetFields(BindingFlags.Public | BindingFlags.Instance))
+            {
+                var val = field.GetValue(source);
+                // Deep copy list/array fields so the clone doesn't share references.
+                if (val is IList list)
+                {
+                    var listClone = (IList)Activator.CreateInstance(val.GetType());
+                    foreach (var item in list) listClone.Add(item);
+                    field.SetValue(clone, listClone);
+                }
+                else
+                {
+                    field.SetValue(clone, val);
+                }
+            }
+            return clone;
         }
 
         /// <summary>
