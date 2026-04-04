@@ -66,6 +66,13 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public void TriggerCreateNew() => OnCreateNewClicked();
 
+        /// <summary>
+        /// Selects <paramref name="so"/> by setting the ObjectField value, which triggers
+        /// the normal validation + <see cref="OnContainerSelected"/> pipeline.
+        /// </summary>
+        public void SelectContainer(ScriptableObject so)
+            => _objectField.value = so;
+
         // ── UI construction ────────────────────────────────────────────────────────
 
         private void Build()

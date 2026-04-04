@@ -10,24 +10,27 @@ namespace LiveGameDataEditor.Editor
     /// Main editor window for the Live Game Data Editor.
     /// Open via: Tools > Game Data Editor
     ///
-    /// Orchestrates:
-    ///   - Asset selection / creation (<see cref="GameDataSelectionBar"/>)
-    ///   - Search / filter toolbar
-    ///   - Table view (<see cref="GameDataTableView"/>)
-    ///   - Validation feedback via <see cref="GameDataValidationService"/>
-    ///   - JSON import / export
+    /// Layout:
+    ///   SelectionBar
+    ///   Toolbar (search / filter / Browse toggle / JSON / CSV)
+    ///   MainArea [horizontal]
+    ///     BrowserPanel (220 px, toggleable) | MainContent (EmptyState or ContentArea)
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
-        private IGameDataContainer   _container;
-        private GameDataSelectionBar _selectionBar;
-        private GameDataTableView    _tableView;
-        private VisualElement        _emptyState;
-        private VisualElement        _contentArea;
+        private IGameDataContainer    _container;
+        private GameDataSelectionBar  _selectionBar;
+        private GameDataTableView     _tableView;
+        private GameDataBrowserPanel  _browserPanel;
+        private VisualElement         _emptyState;
+        private VisualElement         _contentArea;
+        private VisualElement         _mainArea;
+        private VisualElement         _mainContent;
 
         // Toolbar filter state
         private string _searchText  = string.Empty;
         private bool   _enabledOnly = false;
+        private bool   _browserOpen = false;
 
         private void OnEnable()
         {
@@ -61,8 +64,7 @@ namespace LiveGameDataEditor.Editor
 
             BuildSelectionBar();
             BuildToolbar();
-            BuildEmptyState();
-            BuildContentArea();
+            BuildMainArea();
             RefreshView();
         }
 
@@ -76,22 +78,29 @@ namespace LiveGameDataEditor.Editor
                 _container   = container;
                 _searchText  = string.Empty;
                 _enabledOnly = false;
+                _browserPanel?.SetActiveContainer(container as ScriptableObject);
                 RefreshView();
             };
             _selectionBar.OnContainerCleared += () =>
             {
                 _container = null;
+                _browserPanel?.SetActiveContainer(null);
                 RefreshView();
             };
             rootVisualElement.Add(_selectionBar);
         }
 
-        // ── Toolbar (search / filter / JSON) ───────────────────────────────────────
+        // ── Toolbar ────────────────────────────────────────────────────────────────
 
         private void BuildToolbar()
         {
             var toolbar = new VisualElement();
             toolbar.AddToClassList("toolbar");
+
+            // Browse toggle
+            var browseBtn = new Button(ToggleBrowser) { text = "☰ Browse" };
+            browseBtn.AddToClassList("toolbar-button");
+            toolbar.Add(browseBtn);
 
             // Search field
             var searchField = new TextField { value = _searchText };
@@ -114,16 +123,58 @@ namespace LiveGameDataEditor.Editor
             });
             toolbar.Add(enabledToggle);
 
-            var exportBtn = new Button(() => GameDataService.ExportToJson(_container))
+            // JSON
+            var exportJsonBtn = new Button(() => GameDataService.ExportToJson(_container))
                 { text = "Export JSON" };
-            exportBtn.AddToClassList("toolbar-button");
+            exportJsonBtn.AddToClassList("toolbar-button");
 
-            var importBtn = new Button(ImportAndRefresh) { text = "Import JSON" };
-            importBtn.AddToClassList("toolbar-button");
+            var importJsonBtn = new Button(ImportJsonAndRefresh) { text = "Import JSON" };
+            importJsonBtn.AddToClassList("toolbar-button");
 
-            toolbar.Add(exportBtn);
-            toolbar.Add(importBtn);
+            // CSV
+            var exportCsvBtn = new Button(() => GameDataService.ExportToCsv(_container))
+                { text = "Export CSV" };
+            exportCsvBtn.AddToClassList("toolbar-button");
+
+            var importCsvBtn = new Button(ImportCsvAndRefresh) { text = "Import CSV" };
+            importCsvBtn.AddToClassList("toolbar-button");
+
+            toolbar.Add(exportJsonBtn);
+            toolbar.Add(importJsonBtn);
+            toolbar.Add(exportCsvBtn);
+            toolbar.Add(importCsvBtn);
             rootVisualElement.Add(toolbar);
+        }
+
+        // ── Main horizontal area (browser | content) ───────────────────────────────
+
+        private void BuildMainArea()
+        {
+            _mainArea = new VisualElement();
+            _mainArea.AddToClassList("main-area");
+            _mainArea.style.flexDirection = FlexDirection.Row;
+            _mainArea.style.flexGrow      = 1;
+
+            // Browser sidebar
+            _browserPanel = new GameDataBrowserPanel();
+            _browserPanel.OnContainerSelected += so =>
+            {
+                _selectionBar.SelectContainer(so);
+                _browserPanel.SetActiveContainer(so);
+            };
+            _browserPanel.style.display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            _mainArea.Add(_browserPanel);
+
+            // Content area wrapper
+            _mainContent = new VisualElement();
+            _mainContent.style.flexGrow      = 1;
+            _mainContent.style.flexDirection = FlexDirection.Column;
+
+            BuildEmptyState();
+            BuildContentArea();
+
+            _mainArea.Add(_mainContent);
+            rootVisualElement.Add(_mainArea);
         }
 
         // ── Empty state ────────────────────────────────────────────────────────────
@@ -144,7 +195,7 @@ namespace LiveGameDataEditor.Editor
 
             _emptyState.Add(label);
             _emptyState.Add(createBtn);
-            rootVisualElement.Add(_emptyState);
+            _mainContent.Add(_emptyState);
         }
 
         // Data type subtitle label — populated from GameDataAttribute when a container is loaded.
@@ -171,7 +222,7 @@ namespace LiveGameDataEditor.Editor
                 onDuplicateEntries: OnDuplicateEntries);
 
             _contentArea.Add(_tableView);
-            rootVisualElement.Add(_contentArea);
+            _mainContent.Add(_contentArea);
         }
 
         // ── View management ────────────────────────────────────────────────────────
@@ -204,11 +255,28 @@ namespace LiveGameDataEditor.Editor
             _tableView.ApplyValidation(results);
         }
 
+        private void ToggleBrowser()
+        {
+            _browserOpen = !_browserOpen;
+            _browserPanel.style.display = _browserOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_browserOpen)
+            {
+                _browserPanel.Refresh();
+                _browserPanel.SetActiveContainer(_container as ScriptableObject);
+            }
+        }
+
         // ── Toolbar callbacks ──────────────────────────────────────────────────────
 
-        private void ImportAndRefresh()
+        private void ImportJsonAndRefresh()
         {
             GameDataService.ImportFromJson(_container);
+            RefreshView();
+        }
+
+        private void ImportCsvAndRefresh()
+        {
+            GameDataService.ImportFromCsv(_container);
             RefreshView();
         }
 

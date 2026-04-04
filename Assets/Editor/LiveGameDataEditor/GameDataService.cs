@@ -231,8 +231,7 @@ namespace LiveGameDataEditor.Editor
         /// <summary>
         /// Exports data to a user-chosen JSON file. Works for any <see cref="IGameDataContainer"/>.
         /// </summary>
-        public static void ExportToJson(IGameDataContainer container)
-        {
+        public static void ExportToJson(IGameDataContainer container)        {
             if (container == null) return;
 
             var so = container as ScriptableObject;
@@ -277,6 +276,58 @@ namespace LiveGameDataEditor.Editor
                 OnDataImported?.Invoke(gc);
 
             Debug.Log($"[LiveGameDataEditor] Imported {container.GetEntries().Count} entries from: {path}");
+        }
+
+        // ── CSV import / export ────────────────────────────────────────────────────
+
+        /// <summary>Exports data to a user-chosen CSV file.</summary>
+        public static void ExportToCsv(IGameDataContainer container)
+        {
+            if (container == null) return;
+
+            var so = container as ScriptableObject;
+            string defaultName = so != null ? so.name : container.EntryType.Name;
+            string path = EditorUtility.SaveFilePanel(
+                "Export Game Data to CSV",
+                Application.dataPath,
+                defaultName + ".csv",
+                "csv");
+
+            if (string.IsNullOrEmpty(path)) return;
+
+            string csv = GameDataCsvSerializer.Serialize(container);
+            File.WriteAllText(path, csv, System.Text.Encoding.UTF8);
+
+            Debug.Log($"[LiveGameDataEditor] Exported {container.GetEntries().Count} rows to CSV: {path}");
+        }
+
+        /// <summary>
+        /// Imports entries from a user-chosen CSV file, overwriting current data.
+        /// Wrapped in a single Undo operation.
+        /// </summary>
+        public static void ImportFromCsv(IGameDataContainer container)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null) return;
+
+            string path = EditorUtility.OpenFilePanel(
+                "Import Game Data from CSV",
+                Application.dataPath,
+                "csv");
+
+            if (string.IsNullOrEmpty(path)) return;
+
+            string csv = File.ReadAllText(path, System.Text.Encoding.UTF8);
+
+            Undo.RecordObject(so, "Import Game Data from CSV");
+            if (!GameDataCsvSerializer.Deserialize(csv, container))
+            {
+                Debug.LogError("[LiveGameDataEditor] CSV import failed — see previous warnings.");
+                return;
+            }
+            EditorUtility.SetDirty(so);
+
+            Debug.Log($"[LiveGameDataEditor] Imported {container.GetEntries().Count} rows from CSV: {path}");
         }
 
         // Returns the container cast to ScriptableObject, logging a warning if the cast fails.

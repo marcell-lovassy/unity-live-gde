@@ -255,4 +255,118 @@
     color: #e06c6c;
 }
 
+/* ── Stats row ────────────────────────────────────────────── */
+.stats-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 3px 4px;
+    background-color: #2e3440;
+    border-top-width: 1px;
+    border-top-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.stats-cell {
+    font-size: 10px;
+    color: #8fbcbb;
+    overflow: hidden;
+    -unity-text-align: middle-left;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+.stats-count-label {
+    font-size: 10px;
+    color: #616e88;
+    width: 24px;
+    -unity-text-align: middle-right;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+
+/* ── Browser panel ────────────────────────────────────────── */
+.browser-panel {
+    width: 220px;
+    min-width: 160px;
+    flex-shrink: 0;
+    flex-direction: column;
+    background-color: #262626;
+    border-right-width: 1px;
+    border-right-color: #1a1a1a;
+}
+
+.browser-titlebar {
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 8px;
+    background-color: #2a2a2a;
+    border-bottom-width: 1px;
+    border-bottom-color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.browser-title {
+    flex-grow: 1;
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #b8c0cc;
+}
+
+.browser-refresh-btn {
+    width: 24px;
+    height: 20px;
+    font-size: 13px;
+    padding: 0;
+    -unity-text-align: middle-center;
+    background-color: transparent;
+    border-width: 0;
+    color: #8ab4d4;
+}
+
+.browser-refresh-btn:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
+.browser-scroll {
+    flex-grow: 1;
+}
+
+.browser-group-header {
+    font-size: 10px;
+    -unity-font-style: bold;
+    color: #616e88;
+    padding: 6px 8px 2px 8px;
+    margin-top: 4px;
+    -unity-text-align: middle-left;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.browser-item {
+    -unity-text-align: middle-left;
+    font-size: 11px;
+    padding: 3px 10px;
+    margin: 0;
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    color: #c0c8d4;
+}
+
+.browser-item:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+
+.browser-item--active {
+    background-color: rgba(100, 149, 200, 0.22);
+    color: #8ab4d4;
+}
+
+.browser-empty-label {
+    font-size: 10px;
+    color: #616e88;
+    padding: 12px 8px;
+    white-space: normal;
+}
+
 /* end of stylesheet */

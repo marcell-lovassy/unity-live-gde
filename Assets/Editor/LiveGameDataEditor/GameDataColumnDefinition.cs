@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
@@ -147,6 +149,56 @@ namespace LiveGameDataEditor.Editor
 
             return new GameDataColumnDefinition(
                 f, label, flexGrow, minWidth, isList, separator, elemType);
+        }
+        // ── List field helpers (shared by GameDataRowView and GameDataCsvSerializer) ──
+
+        /// <summary>
+        /// Converts a list/array field value to its separator-joined string representation.
+        /// Returns an empty string for null values.
+        /// </summary>
+        public static string ListFieldToString(object value, GameDataColumnDefinition col)
+        {
+            if (value == null) return string.Empty;
+            if (value is IEnumerable<string> strSeq)
+                return string.Join(col.ListSeparator, strSeq);
+            if (value is IEnumerable items)
+                return string.Join(col.ListSeparator, items.Cast<object>().Select(o => o?.ToString() ?? ""));
+            return value.ToString();
+        }
+
+        /// <summary>
+        /// Parses a separator-joined string back into a list or array matching
+        /// <see cref="Field"/>.<see cref="FieldInfo.FieldType"/>. Leading/trailing
+        /// whitespace on each item is trimmed.
+        /// Supported element types: <c>string</c>, <c>int</c>, <c>float</c>.
+        /// </summary>
+        public object ParseListField(string text)
+        {
+            if (text == null) text = string.Empty;
+            var parts = text
+                .Split(new[] { ListSeparator }, StringSplitOptions.None)
+                .Select(p => p.Trim())
+                .ToArray();
+
+            if (ElementType == typeof(string))
+            {
+                if (Field.FieldType.IsArray) return parts;
+                return new List<string>(parts);
+            }
+            if (ElementType == typeof(int))
+            {
+                var ints = parts.Select(p => int.TryParse(p, out int v) ? v : 0).ToList();
+                if (Field.FieldType.IsArray) return ints.ToArray();
+                return ints;
+            }
+            if (ElementType == typeof(float))
+            {
+                var floats = parts.Select(p => float.TryParse(p, out float v) ? v : 0f).ToList();
+                if (Field.FieldType.IsArray) return floats.ToArray();
+                return floats;
+            }
+            // Fallback
+            return new List<string>(parts);
         }
     }
 }

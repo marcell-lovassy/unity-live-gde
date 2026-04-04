@@ -48,6 +48,12 @@ namespace LiveGameDataEditor.Editor
         // Header sort-indicator labels, keyed by field name
         private readonly Dictionary<string, Label> _sortIndicators = new();
 
+        // Stats footer
+        private VisualElement    _statsRow;
+        private readonly List<Label> _statsLabels  = new();
+        private Label            _statsCountLabel;
+        private readonly List<int>   _visibleIndices = new();
+
         public GameDataTableView(
             Action<int, IGameDataEntry> onEntryChanged,
             Action                      onAddEntry,
@@ -69,6 +75,7 @@ namespace LiveGameDataEditor.Editor
             Add(_headerRow);
 
             BuildScrollView();
+            BuildStatsRow();
             BuildFooter();
         }
 
@@ -85,12 +92,14 @@ namespace LiveGameDataEditor.Editor
             _rows.Clear();
             _scrollView.Clear();
             _sortIndicators.Clear();
+            _statsLabels.Clear();
 
-            if (container == null) return;
+            if (container == null) { RebuildStatsRow(); return; }
 
             // Rebuild columns from the container's entry type
             _columns = GameDataColumnDefinition.FromType(container.EntryType);
             RebuildHeader();
+            RebuildStatsRow();
 
             var entries = container.GetEntries();
             for (int i = 0; i < entries.Count; i++)
@@ -249,10 +258,92 @@ namespace LiveGameDataEditor.Editor
             _scrollView.Clear();
             foreach (int i in visible)
                 _scrollView.Add(_rows[i]);
+
+            // Step 4: update visible index cache and stats
+            _visibleIndices.Clear();
+            _visibleIndices.AddRange(visible);
+            UpdateStatsRow();
         }
 
-        private void OnHeaderClicked(string fieldName)
+        // ── Stats row ──────────────────────────────────────────────────────────────
+
+        /// <summary>Creates the stats row VisualElement (called once in constructor).</summary>
+        private void BuildStatsRow()
         {
+            _statsRow = new VisualElement();
+            _statsRow.AddToClassList("stats-row");
+            Add(_statsRow); // inserted after _scrollView, before footer
+        }
+
+        /// <summary>
+        /// Rebuilds stats row labels to match the current column set.
+        /// Called whenever the container type changes (i.e. in Populate()).
+        /// </summary>
+        private void RebuildStatsRow()
+        {
+            _statsRow.Clear();
+            _statsLabels.Clear();
+
+            // Gutter to align with data rows
+            var gutter = new VisualElement();
+            gutter.AddToClassList("col-gutter");
+            _statsRow.Add(gutter);
+
+            // Row count on the left of the gutter
+            _statsCountLabel = new Label();
+            _statsCountLabel.AddToClassList("stats-count-label");
+            _statsRow.Add(_statsCountLabel);
+
+            if (_columns == null || _columns.Count == 0) return;
+
+            foreach (var col in _columns)
+            {
+                var label = new Label();
+                label.AddToClassList("stats-cell");
+                label.AddToClassList($"col-{col.Field.Name.ToLower()}");
+                ApplySizing(label, col);
+                _statsRow.Add(label);
+                _statsLabels.Add(label);
+            }
+        }
+
+        /// <summary>
+        /// Recomputes sum and average for numeric columns over currently visible rows.
+        /// </summary>
+        private void UpdateStatsRow()
+        {
+            if (_statsCountLabel != null)
+                _statsCountLabel.text = $"{_visibleIndices.Count} row{(_visibleIndices.Count == 1 ? "" : "s")}";
+
+            if (_container == null || _statsLabels.Count == 0) return;
+
+            var entries = _container.GetEntries();
+
+            for (int ci = 0; ci < _columns.Count && ci < _statsLabels.Count; ci++)
+            {
+                var col   = _columns[ci];
+                var label = _statsLabels[ci];
+
+                if (!col.IsInt && !col.IsFloat) { label.text = string.Empty; continue; }
+
+                double sum = 0;
+                int    count = 0;
+                foreach (int idx in _visibleIndices)
+                {
+                    var raw = col.Field.GetValue(entries[idx]);
+                    double val = col.IsInt ? (int)raw : (double)(float)raw;
+                    sum += val;
+                    count++;
+                }
+
+                double avg = count > 0 ? sum / count : 0;
+                label.text = col.IsInt
+                    ? $"Σ {(long)sum}  ∅ {avg:F1}"
+                    : $"Σ {sum:F1}  ∅ {avg:F1}";
+            }
+        }
+
+        private void OnHeaderClicked(string fieldName)        {
             if (_sortField == fieldName)
                 _sortAsc = !_sortAsc;
             else

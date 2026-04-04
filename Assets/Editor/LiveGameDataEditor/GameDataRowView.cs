@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -133,11 +132,11 @@ namespace LiveGameDataEditor.Editor
 
             if (col.IsList)
             {
-                string display = ListToString(_fieldValues[name], col);
+                string display = GameDataColumnDefinition.ListFieldToString(_fieldValues[name], col);
                 var tf = new TextField { value = display };
                 tf.RegisterValueChangedCallback(evt =>
                 {
-                    _fieldValues[name] = StringToList(evt.newValue, col);
+                    _fieldValues[name] = col.ParseListField(evt.newValue);
                     OnEntryChanged?.Invoke(MakeEntry());
                 });
                 field = tf;
@@ -292,46 +291,6 @@ namespace LiveGameDataEditor.Editor
             return entry;
         }
 
-        // ── List field helpers ─────────────────────────────────────────────────────
-
-        private static string ListToString(object value, GameDataColumnDefinition col)
-        {
-            if (value == null) return string.Empty;
-            if (value is IEnumerable<string> strSeq)
-                return string.Join(col.ListSeparator, strSeq);
-            if (value is IEnumerable items)
-                return string.Join(col.ListSeparator, items.Cast<object>().Select(o => o?.ToString() ?? ""));
-            return value.ToString();
-        }
-
-        private static object StringToList(string text, GameDataColumnDefinition col)
-        {
-            if (text == null) text = string.Empty;
-            var parts = text
-                .Split(new[] { col.ListSeparator }, StringSplitOptions.None)
-                .Select(p => p.Trim())
-                .ToArray();
-
-            if (col.ElementType == typeof(string))
-            {
-                if (col.Field.FieldType.IsArray) return parts;
-                return new List<string>(parts);
-            }
-            if (col.ElementType == typeof(int))
-            {
-                var ints = parts.Select(p => int.TryParse(p, out int v) ? v : 0).ToList();
-                if (col.Field.FieldType.IsArray) return ints.ToArray();
-                return ints;
-            }
-            if (col.ElementType == typeof(float))
-            {
-                var floats = parts.Select(p => float.TryParse(p, out float v) ? v : 0f).ToList();
-                if (col.Field.FieldType.IsArray) return floats.ToArray();
-                return floats;
-            }
-            // Fallback for unrecognised element types: store as List<string>.
-            return new List<string>(parts);
-        }
     }
 }
 
