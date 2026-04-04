@@ -916,5 +916,180 @@
     margin-bottom: 8px;
 }
 
-/* end of stylesheet */
+/* ── Sheets Setup Wizard ──────────────────────────────────────── */
 
+/* Config creation panel */
+.welcome-wizard-create-box {
+    background-color: #1a2e40;
+    border-color: #2d6a9f;
+    border-width: 1px;
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+/* Folder picker */
+.welcome-wizard-folder-display {
+    font-size: 11px;
+    color: #8ec8e8;
+    background-color: #1a1a1a;
+    border-color: #333;
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.welcome-wizard-browse-btn {
+    font-size: 11px;
+    height: 22px;
+    min-width: 70px;
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #aaa;
+}
+
+/* Config info bar (shown once config exists) */
+.welcome-wizard-config-bar {
+    flex-direction: row;
+    align-items: center;
+    background-color: #1a301a;
+    border-color: #2a5a2a;
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+.welcome-wizard-config-bar-label {
+    font-size: 11px;
+    color: #7ec8a0;
+    flex-grow: 1;
+}
+
+.welcome-wizard-ping-btn {
+    font-size: 10px;
+    height: 20px;
+    min-width: 90px;
+    background-color: #1a2e1a;
+    border-color: #2a5a2a;
+    color: #7ec8a0;
+}
+
+/* Step section card */
+.welcome-wizard-section {
+    background-color: #222;
+    border-color: #333;
+    border-width: 1px;
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+}
+
+.welcome-wizard-step-num {
+    font-size: 10px;
+    -unity-font-style: bold;
+    color: #2d6a9f;
+    background-color: #1a3a5c;
+    border-radius: 3px;
+    padding: 2px 6px;
+    margin-right: 8px;
+}
+
+.welcome-wizard-section-title {
+    font-size: 12px;
+    -unity-font-style: bold;
+    color: #c8c8c8;
+    letter-spacing: 0.5px;
+}
+
+/* Auth mode button row */
+.welcome-wizard-auth-row {
+    flex-direction: row;
+    margin-top: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.welcome-wizard-auth-btn {
+    font-size: 11px;
+    height: 28px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #8a8a8a;
+    border-radius: 4px;
+    padding: 0 12px;
+}
+
+.welcome-wizard-auth-btn--active {
+    background-color: #1a3a5c;
+    border-color: #2d6a9f;
+    color: #7ec8e3;
+    -unity-font-style: bold;
+}
+
+/* Sub-steps (3a, 3b …) */
+.welcome-wizard-substep {
+    flex-direction: row;
+    align-items: flex-start;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    padding: 6px 8px;
+    background-color: #1e1e1e;
+    border-radius: 4px;
+}
+
+.welcome-wizard-substep-num {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: #2d6a9f;
+    min-width: 26px;
+    margin-top: 1px;
+}
+
+/* Field row */
+.welcome-wizard-field-row {
+    margin-top: 8px;
+    margin-bottom: 6px;
+}
+
+.welcome-wizard-field-label {
+    font-size: 11px;
+    color: #9a9a9a;
+    margin-bottom: 3px;
+}
+
+.welcome-wizard-field {
+    height: 22px;
+    font-size: 12px;
+    background-color: #1a1a1a;
+    border-color: #444;
+    color: #d4d4d4;
+}
+
+.welcome-wizard-field:focus {
+    border-color: #2d6a9f;
+}
+
+/* Code block */
+.welcome-wizard-code-block {
+    font-size: 11px;
+    -unity-font-style: italic;
+    color: #9ec8a0;
+    background-color: #141414;
+    border-color: #2a4a2a;
+    border-width: 1px;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    white-space: normal;
+}
+
+/* end of stylesheet */

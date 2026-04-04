@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using LiveGameDataEditor.GoogleSheets;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -11,7 +13,7 @@ namespace LiveGameDataEditor.Editor
     /// Four tabs:
     ///   Welcome       — elevator pitch + feature overview
     ///   Quick Start   — step-by-step guide to first use
-    ///   Sheets Setup  — OAuth walkthrough (buyer creates their own Google Cloud credentials)
+    ///   Sheets Setup  — interactive wizard: creates GoogleSheetsConfig and fills it in inline
     ///   About         — version info + external links
     ///
     /// Auto-shown via <see cref="WelcomeWindowInitializer"/> on the first editor launch
@@ -32,9 +34,16 @@ namespace LiveGameDataEditor.Editor
 
         private enum Page { Welcome, QuickStart, SheetsSetup, About }
 
-        private Page          _activePage = Page.Welcome;
-        private VisualElement _contentArea;
-        private VisualElement[] _tabButtons;
+        private Page             _activePage = Page.Welcome;
+        private VisualElement    _contentArea;
+        private VisualElement[]  _tabButtons;
+
+        // ── Sheets wizard state ────────────────────────────────────────────────
+
+        private GoogleSheetsConfig _wizardConfig;
+        private string             _wizardConfigPath;
+        private string             _wizardFolderPath = "Assets";
+        private VisualElement      _wizardAuthCredentials; // swapped on auth-mode change
 
         // ── Menu item ─────────────────────────────────────────────────────────
 
@@ -42,8 +51,8 @@ namespace LiveGameDataEditor.Editor
         public static void ShowWindow()
         {
             var window = GetWindow<WelcomeWindow>(utility: true, title: "Live Game Data Editor");
-            window.minSize = new Vector2(640, 520);
-            window.maxSize = new Vector2(640, 520);
+            window.minSize = new Vector2(660, 580);
+            window.maxSize = new Vector2(660, 580);
             window.ShowUtility();
         }
 
@@ -300,67 +309,419 @@ namespace LiveGameDataEditor.Editor
 
         private void BuildSheetsSetupPage()
         {
+            FindOrLoadWizardConfig();
+
             var scroll = new ScrollView();
             scroll.AddToClassList("welcome-page-scroll");
 
             scroll.Add(Heading("Google Sheets Setup"));
             scroll.Add(Para(
-                "Each project uses its own Google Cloud OAuth credentials — " +
-                "your data stays entirely within your own Google account. " +
-                "The setup takes about 5 minutes."));
+                "Connect your data to Google Sheets in a few steps. " +
+                "Your credentials stay in your own Google account — nothing is shared."));
 
-            // Step 1
-            scroll.Add(Step(1, "Go to Google Cloud Console",
-                "Open the Google Cloud Console and sign in with your Google account."));
-            scroll.Add(LinkButton("Open Google Cloud Console →", CloudConsoleUrl));
-
-            // Step 2
-            scroll.Add(Step(2, "Create a project & enable the Sheets API",
-                "Create a new project (or select an existing one).\n" +
-                "Then navigate to APIs & Services → Library and enable the Google Sheets API."));
-            scroll.Add(LinkButton("Enable Google Sheets API →", CloudSheetsApiUrl));
-
-            // Step 3
-            scroll.Add(Step(3, "Create OAuth 2.0 credentials",
-                "APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID\n" +
-                "Application type: Desktop app\n" +
-                "Give it any name (e.g. \"Unity Game Data Editor\").\n" +
-                "Copy the Client ID and Client Secret shown on screen."));
-            scroll.Add(LinkButton("Open Credentials page →", CloudCredentialsUrl));
-
-            // Step 4
-            scroll.Add(Step(4, "Add a test user",
-                "Your app starts in 'Testing' mode — you must add your Google email address.\n" +
-                "APIs & Services → OAuth consent screen → Test users → Add users."));
-            scroll.Add(LinkButton("Open OAuth Consent Screen →", CloudConsentUrl));
-
-            // Step 5
-            scroll.Add(Step(5, "Configure in Unity",
-                "In the Project window:\n" +
-                "Assets → Create → Live Game Data / Google Sheets Config\n\n" +
-                "Fill in:\n" +
-                "• Spreadsheet ID  — the segment after /d/ in your sheet URL\n" +
-                "• OAuth Client ID — from Step 3\n" +
-                "• OAuth Client Secret — from Step 3\n" +
-                "• Auth Mode — OAuth (default)"));
-
-            // Step 6
-            scroll.Add(Step(6, "Declare the tab name on your container",
-                "Add [GoogleSheetsTab(\"MyTabName\")] to your container class:\n\n" +
-                "[GoogleSheetsTab(\"EnemyData\")]\n" +
-                "public class EnemyDataContainer : GameDataContainerBase<EnemyDataEntry> { }"));
-
-            // Step 7
-            scroll.Add(Step(7, "Sign in and sync",
-                "Open the Game Data Editor → load your container → click ☁ Sheets.\n" +
-                "Assign your GoogleSheetsConfig, then click 'Sign in with Google'.\n" +
-                "After sign-in, use ↑ Push to write data or ↓ Pull to read it."));
-
-            scroll.Add(Tip(
-                "The GoogleSheetsConfig is shared across all open containers — " +
-                "one config per spreadsheet, each container maps to its own tab."));
+            if (_wizardConfig == null)
+            {
+                scroll.Add(BuildConfigCreatePanel());
+            }
+            else
+            {
+                scroll.Add(BuildConfigBar());
+                scroll.Add(BuildConfigForm());
+            }
 
             _contentArea.Add(scroll);
+        }
+
+        // ── Wizard: config creation ────────────────────────────────────────────
+
+        private VisualElement BuildConfigCreatePanel()
+        {
+            var box = new VisualElement();
+            box.AddToClassList("welcome-wizard-create-box");
+
+            var title = new Label("Step 1 of 1 — Create your config asset");
+            title.AddToClassList("welcome-wizard-section-title");
+            box.Add(title);
+
+            box.Add(Para("This file stores your Spreadsheet ID and credentials. " +
+                         "One config is shared across all your data containers."));
+
+            // Folder picker row
+            var folderRow = new VisualElement();
+            folderRow.style.flexDirection = FlexDirection.Row;
+            folderRow.style.alignItems    = Align.Center;
+            folderRow.style.marginTop     = 8;
+            folderRow.style.marginBottom  = 8;
+
+            var folderLabel = new Label("Save to:");
+            folderLabel.AddToClassList("welcome-wizard-field-label");
+            folderLabel.style.marginRight = 8;
+            folderLabel.style.minWidth    = 60;
+            folderRow.Add(folderLabel);
+
+            var folderDisplay = new Label(_wizardFolderPath);
+            folderDisplay.AddToClassList("welcome-wizard-folder-display");
+            folderDisplay.style.flexGrow = 1;
+            folderRow.Add(folderDisplay);
+
+            var browseBtn = new Button(() =>
+            {
+                string chosen = EditorUtility.OpenFolderPanel("Choose folder", _wizardFolderPath, "");
+                if (!string.IsNullOrEmpty(chosen))
+                {
+                    // Convert absolute path to project-relative (Assets/...)
+                    string projectPath = Application.dataPath.Replace("/Assets", "");
+                    if (chosen.StartsWith(projectPath))
+                    {
+                        _wizardFolderPath = chosen.Substring(projectPath.Length + 1);
+                    }
+                    else
+                    {
+                        _wizardFolderPath = "Assets";
+                    }
+                    folderDisplay.text = _wizardFolderPath;
+                }
+            })
+            { text = "Browse…" };
+            browseBtn.AddToClassList("welcome-wizard-browse-btn");
+            folderRow.Add(browseBtn);
+
+            box.Add(folderRow);
+
+            var createBtn = new Button(() =>
+            {
+                CreateWizardConfig(_wizardFolderPath);
+                RebuildSheetsPage();
+            })
+            { text = "✓  Create GoogleSheetsConfig" };
+            createBtn.AddToClassList("welcome-cta-btn");
+            box.Add(createBtn);
+
+            return box;
+        }
+
+        private void CreateWizardConfig(string folder)
+        {
+            string assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                Path.Combine(folder, "GoogleSheetsConfig.asset").Replace("\\", "/"));
+
+            var config = CreateInstance<GoogleSheetsConfig>();
+            AssetDatabase.CreateAsset(config, assetPath);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            _wizardConfig     = config;
+            _wizardConfigPath = assetPath;
+
+            // Ping the new asset in the Project window
+            EditorGUIUtility.PingObject(config);
+        }
+
+        private void FindOrLoadWizardConfig()
+        {
+            if (_wizardConfig != null)
+            {
+                return;
+            }
+
+            var guids = AssetDatabase.FindAssets("t:GoogleSheetsConfig");
+            if (guids.Length == 0)
+            {
+                return;
+            }
+
+            _wizardConfigPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+            _wizardConfig     = AssetDatabase.LoadAssetAtPath<GoogleSheetsConfig>(_wizardConfigPath);
+        }
+
+        private void RebuildSheetsPage()
+        {
+            _contentArea.Clear();
+            BuildSheetsSetupPage();
+        }
+
+        // ── Wizard: config info bar ────────────────────────────────────────────
+
+        private VisualElement BuildConfigBar()
+        {
+            var bar = new VisualElement();
+            bar.AddToClassList("welcome-wizard-config-bar");
+
+            var label = new Label($"✓  {Path.GetFileName(_wizardConfigPath)}   ·   {_wizardConfigPath}");
+            label.AddToClassList("welcome-wizard-config-bar-label");
+            bar.Add(label);
+
+            var pingBtn = new Button(() => EditorGUIUtility.PingObject(_wizardConfig))
+            { text = "Show in Project" };
+            pingBtn.AddToClassList("welcome-wizard-ping-btn");
+            bar.Add(pingBtn);
+
+            return bar;
+        }
+
+        // ── Wizard: inline config form ─────────────────────────────────────────
+
+        private VisualElement BuildConfigForm()
+        {
+            var form = new VisualElement();
+
+            // ── Step 1: Spreadsheet ID ─────────────────────────────────────────
+            var step1 = WizardSection("1", "Your Google Spreadsheet");
+            step1.Add(Para("Open your Google Sheet in a browser. The Spreadsheet ID is the " +
+                           "segment between /d/ and /edit in the URL."));
+            step1.Add(Para("Example: docs.google.com/spreadsheets/d/\u00AB ID \u00BB/edit"));
+            step1.Add(LinkButton("Open Google Sheets →", "https://sheets.google.com"));
+            step1.Add(WizardField("Spreadsheet ID", _wizardConfig.SpreadsheetId, v =>
+            {
+                Undo.RecordObject(_wizardConfig, "Set Spreadsheet ID");
+                _wizardConfig.SpreadsheetId = v;
+                SaveWizardConfig();
+            }));
+            form.Add(step1);
+
+            // ── Step 2: Auth mode ──────────────────────────────────────────────
+            var step2 = WizardSection("2", "Authentication Method");
+            step2.Add(Para("OAuth is recommended for designers: sign in once with your Google account."));
+
+            var authRow = new VisualElement();
+            authRow.AddToClassList("welcome-wizard-auth-row");
+
+            _wizardAuthCredentials = new VisualElement();
+
+            foreach (var mode in new[] { GoogleSheetsAuthMode.OAuth, GoogleSheetsAuthMode.ApiKey, GoogleSheetsAuthMode.ServiceAccount })
+            {
+                GoogleSheetsAuthMode captured = mode;
+                bool active = _wizardConfig.AuthMode == mode;
+
+                string label = mode switch
+                {
+                    GoogleSheetsAuthMode.OAuth          => "● OAuth  (recommended)",
+                    GoogleSheetsAuthMode.ApiKey         => "API Key  (read-only)",
+                    GoogleSheetsAuthMode.ServiceAccount => "Service Account  (CI/CD)",
+                    _                                   => mode.ToString()
+                };
+
+                var btn = new Button(() =>
+                {
+                    Undo.RecordObject(_wizardConfig, "Set Auth Mode");
+                    _wizardConfig.AuthMode = captured;
+                    SaveWizardConfig();
+                    // Rebuild only the auth section
+                    RefreshAuthCredentialsSection();
+                    // Re-apply button active states
+                    foreach (var child in authRow.Children())
+                    {
+                        child.RemoveFromClassList("welcome-wizard-auth-btn--active");
+                    }
+                    btn.AddToClassList("welcome-wizard-auth-btn--active");
+                })
+                { text = label };
+
+                btn.AddToClassList("welcome-wizard-auth-btn");
+                if (active)
+                {
+                    btn.AddToClassList("welcome-wizard-auth-btn--active");
+                }
+                authRow.Add(btn);
+            }
+
+            step2.Add(authRow);
+            step2.Add(_wizardAuthCredentials);
+            RefreshAuthCredentialsSection();
+            form.Add(step2);
+
+            // ── Step 3: Container attribute ────────────────────────────────────
+            var step3 = WizardSection("3", "Tag Your Container");
+            step3.Add(Para("Each container maps to a Google Sheet tab by name. " +
+                           "Add this attribute to your container class:"));
+            var codeBlock = new Label(
+                "[GoogleSheetsTab(\"EnemyData\")]\n" +
+                "public class EnemyDataContainer\n" +
+                "    : GameDataContainerBase<EnemyDataEntry> { }");
+            codeBlock.AddToClassList("welcome-wizard-code-block");
+            step3.Add(codeBlock);
+            step3.Add(Tip("If you omit the attribute, the tab name falls back to the entry " +
+                          "type name (e.g. \"EnemyDataEntry\")."));
+            form.Add(step3);
+
+            // ── CTA ────────────────────────────────────────────────────────────
+            var openBtn = new Button(() =>
+            {
+                Close();
+                EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
+            })
+            { text = "Open Game Data Editor  →" };
+            openBtn.AddToClassList("welcome-cta-btn");
+            form.Add(openBtn);
+
+            return form;
+        }
+
+        private void RefreshAuthCredentialsSection()
+        {
+            _wizardAuthCredentials.Clear();
+
+            switch (_wizardConfig.AuthMode)
+            {
+                case GoogleSheetsAuthMode.OAuth:
+                    BuildOAuthCredentials(_wizardAuthCredentials);
+                    break;
+                case GoogleSheetsAuthMode.ApiKey:
+                    BuildApiKeyCredentials(_wizardAuthCredentials);
+                    break;
+                case GoogleSheetsAuthMode.ServiceAccount:
+                    BuildServiceAccountCredentials(_wizardAuthCredentials);
+                    break;
+            }
+        }
+
+        private void BuildOAuthCredentials(VisualElement parent)
+        {
+            parent.Add(WizardSubStep("3a", "Create a Google Cloud project",
+                "Go to Google Cloud Console and create a new project (or select an existing one)."));
+            parent.Add(LinkButton("Open Google Cloud Console →", CloudConsoleUrl));
+
+            parent.Add(WizardSubStep("3b", "Enable the Google Sheets API",
+                "APIs & Services → Library → search 'Google Sheets API' → Enable."));
+            parent.Add(LinkButton("Enable Google Sheets API →", CloudSheetsApiUrl));
+
+            parent.Add(WizardSubStep("3c", "Create OAuth 2.0 credentials",
+                "Credentials → + Create Credentials → OAuth 2.0 Client ID\n" +
+                "Application type: Desktop app — give it any name."));
+            parent.Add(LinkButton("Open Credentials page →", CloudCredentialsUrl));
+
+            parent.Add(WizardField("Client ID", _wizardConfig.OAuthClientId, v =>
+            {
+                Undo.RecordObject(_wizardConfig, "Set OAuth Client ID");
+                _wizardConfig.OAuthClientId = v;
+                SaveWizardConfig();
+            }));
+            parent.Add(WizardField("Client Secret", _wizardConfig.OAuthClientSecret, v =>
+            {
+                Undo.RecordObject(_wizardConfig, "Set OAuth Client Secret");
+                _wizardConfig.OAuthClientSecret = v;
+                SaveWizardConfig();
+            }));
+
+            parent.Add(WizardSubStep("3d", "Add yourself as a Test User",
+                "While your OAuth app is in 'Testing' mode, only listed emails can authenticate.\n" +
+                "OAuth consent screen → Test users → + Add users → enter your Google email."));
+            parent.Add(LinkButton("Open OAuth Consent Screen →", CloudConsentUrl));
+        }
+
+        private void BuildApiKeyCredentials(VisualElement parent)
+        {
+            parent.Add(Para("API Key mode is read-only (Pull only). Your sheet must be shared " +
+                            "as 'Anyone with the link can view'."));
+            parent.Add(WizardSubStep("3a", "Create an API Key",
+                "Google Cloud Console → APIs & Services → Credentials\n" +
+                "+ Create Credentials → API Key → copy the key."));
+            parent.Add(LinkButton("Open Credentials page →", CloudCredentialsUrl));
+            parent.Add(WizardField("API Key", _wizardConfig.ApiKey, v =>
+            {
+                Undo.RecordObject(_wizardConfig, "Set API Key");
+                _wizardConfig.ApiKey = v;
+                SaveWizardConfig();
+            }));
+        }
+
+        private void BuildServiceAccountCredentials(VisualElement parent)
+        {
+            parent.Add(Para("Service Account is suitable for CI/CD pipelines. " +
+                            "Keep the JSON key file outside Assets/ and add it to .gitignore."));
+            parent.Add(WizardSubStep("3a", "Create a Service Account",
+                "Google Cloud Console → IAM & Admin → Service Accounts → + Create\n" +
+                "Grant it 'Editor' role on your spreadsheet (share the sheet with the SA email)."));
+            parent.Add(LinkButton("Open Google Cloud Console →", CloudConsoleUrl));
+            parent.Add(WizardSubStep("3b", "Download the JSON key",
+                "Service account → Keys → Add key → Create new key → JSON\n" +
+                "Save the file somewhere outside your Assets folder."));
+            parent.Add(WizardField("JSON Key File Path", _wizardConfig.ServiceAccountJsonPath, v =>
+            {
+                Undo.RecordObject(_wizardConfig, "Set SA JSON Path");
+                _wizardConfig.ServiceAccountJsonPath = v;
+                SaveWizardConfig();
+            }, placeholder: "e.g.  C:/credentials/my-project-key.json"));
+        }
+
+        private void SaveWizardConfig()
+        {
+            if (_wizardConfig == null)
+            {
+                return;
+            }
+            EditorUtility.SetDirty(_wizardConfig);
+            AssetDatabase.SaveAssets();
+        }
+
+        // ── Wizard element helpers ─────────────────────────────────────────────
+
+        private static VisualElement WizardSection(string number, string title)
+        {
+            var section = new VisualElement();
+            section.AddToClassList("welcome-wizard-section");
+
+            var header = new VisualElement();
+            header.style.flexDirection = FlexDirection.Row;
+            header.style.alignItems   = Align.Center;
+            header.style.marginBottom = 8;
+
+            var numLabel = new Label($"STEP {number}");
+            numLabel.AddToClassList("welcome-wizard-step-num");
+            header.Add(numLabel);
+
+            var titleLabel = new Label(title.ToUpper());
+            titleLabel.AddToClassList("welcome-wizard-section-title");
+            header.Add(titleLabel);
+
+            section.Add(header);
+            return section;
+        }
+
+        private static VisualElement WizardSubStep(string number, string title, string body)
+        {
+            var row = new VisualElement();
+            row.AddToClassList("welcome-wizard-substep");
+
+            var numLabel = new Label(number);
+            numLabel.AddToClassList("welcome-wizard-substep-num");
+            row.Add(numLabel);
+
+            var textCol = new VisualElement();
+            textCol.style.flexGrow = 1;
+
+            var titleLabel = new Label(title);
+            titleLabel.AddToClassList("welcome-step-title");
+            textCol.Add(titleLabel);
+
+            var bodyLabel = new Label(body);
+            bodyLabel.AddToClassList("welcome-step-body");
+            textCol.Add(bodyLabel);
+
+            row.Add(textCol);
+            return row;
+        }
+
+        private static VisualElement WizardField(string labelText, string currentValue,
+            Action<string> onChange, string placeholder = "")
+        {
+            var container = new VisualElement();
+            container.AddToClassList("welcome-wizard-field-row");
+
+            var label = new Label(labelText);
+            label.AddToClassList("welcome-wizard-field-label");
+            container.Add(label);
+
+            var field = new TextField { value = currentValue };
+            if (!string.IsNullOrEmpty(placeholder))
+            {
+                field.tooltip = placeholder;
+            }
+            field.AddToClassList("welcome-wizard-field");
+            field.RegisterValueChangedCallback(evt => onChange(evt.newValue));
+            container.Add(field);
+
+            return container;
         }
 
         // ── About page ─────────────────────────────────────────────────────────
