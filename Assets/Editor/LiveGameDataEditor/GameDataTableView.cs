@@ -70,7 +70,10 @@ namespace LiveGameDataEditor.Editor
         private readonly List<int>   _visibleIndices = new();
 
         // Drag-to-reorder state
-        private bool          _isDragging       = false;
+        private bool          _isDragging        = false;
+        private bool          _dragPending       = false;   // pointer down, awaiting threshold move
+        private Vector2       _dragStartPosition;           // world position at pointer-down
+        private const float   DragThreshold      = 5f;     // pixels before drag activates
         private int           _draggingDataIndex = -1;
         private int           _dropTargetVisibleIdx = -1; // insert-before position in visible rows
         private VisualElement _dropIndicator;
@@ -173,7 +176,7 @@ namespace LiveGameDataEditor.Editor
                 row.OnEntryChanged     += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
                 row.OnSelectionToggled += (isMulti) => HandleRowSelection(capturedIndex, isMulti);
                 row.OnRequestNextRow   += colIndex  => NavigateToNextRow(row, colIndex);
-                row.OnDragHandlePointerDown += () => BeginRowDrag(capturedIndex);
+                row.OnDragHandlePointerDown += (pos) => BeginRowDrag(capturedIndex, pos);
 
                 // Apply any existing column width overrides to this new row.
                 foreach (var kvp in _colWidthOverrides)
@@ -573,19 +576,30 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
-        private void BeginRowDrag(int dataIndex)
+        private void BeginRowDrag(int dataIndex, Vector2 worldPosition)
         {
             if (!IsDragEnabled)
             {
                 return;
             }
-            _isDragging        = true;
-            _draggingDataIndex = dataIndex;
+            _dragPending          = true;
+            _isDragging           = false;
+            _draggingDataIndex    = dataIndex;
+            _dragStartPosition    = worldPosition;
             _dropTargetVisibleIdx = -1;
         }
 
         private void OnDragPointerMove(PointerMoveEvent evt)
         {
+            if (_dragPending && !_isDragging)
+            {
+                // Activate drag only after the pointer has moved beyond the threshold.
+                if (Vector2.Distance(evt.position, _dragStartPosition) >= DragThreshold)
+                {
+                    _isDragging = true;
+                }
+            }
+
             if (!_isDragging)
             {
                 return;
@@ -601,12 +615,14 @@ namespace LiveGameDataEditor.Editor
 
         private void OnDragPointerUp(PointerUpEvent evt)
         {
-            if (!_isDragging)
+            if (!_isDragging && !_dragPending)
             {
                 return;
             }
 
-            _isDragging = false;
+            bool wasActuallyDragging = _isDragging;
+            _isDragging  = false;
+            _dragPending = false;
             _dropIndicator.RemoveFromHierarchy();
 
             int from = _draggingDataIndex;
@@ -615,6 +631,10 @@ namespace LiveGameDataEditor.Editor
             _draggingDataIndex    = -1;
             _dropTargetVisibleIdx = -1;
 
+            if (!wasActuallyDragging)
+            {
+                return;
+            }
             if (from < 0 || insertBefore < 0)
             {
                 return;

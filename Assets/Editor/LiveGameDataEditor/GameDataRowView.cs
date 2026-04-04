@@ -48,7 +48,7 @@ namespace LiveGameDataEditor.Editor
         /// Raised when the drag handle receives a pointer-down (left button).
         /// The table view subscribes to begin a drag operation for this row.
         /// </summary>
-        public event Action OnDragHandlePointerDown;
+        public event Action<Vector2> OnDragHandlePointerDown;
 
         // ── State ──────────────────────────────────────────────────────────────────
 
@@ -179,12 +179,10 @@ namespace LiveGameDataEditor.Editor
                 {
                     return;
                 }
-                OnDragHandlePointerDown?.Invoke();
-                evt.StopPropagation();
+                OnDragHandlePointerDown?.Invoke(evt.position);
+                // Do NOT stop propagation — let the ClickEvent bubble up so clicking
+                // the handle also selects the row (drag activates only on movement).
             }, TrickleDown.TrickleDown);
-
-            // Prevent click on handle from toggling row selection
-            _dragHandle.RegisterCallback<ClickEvent>(evt => evt.StopPropagation());
 
             gutter.Add(_dragHandle);
             Add(gutter);
