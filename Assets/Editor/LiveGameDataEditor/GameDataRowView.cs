@@ -90,7 +90,10 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public void SetDragEnabled(bool enabled)
         {
-            if (_dragHandle == null) return;
+            if (_dragHandle == null)
+            {
+                return;
+            }
             _dragHandle.style.display = enabled ? DisplayStyle.Flex : DisplayStyle.None;
             _dragHandle.tooltip = enabled
                 ? "Drag to reorder"
@@ -120,9 +123,11 @@ namespace LiveGameDataEditor.Editor
         /// <summary>Moves keyboard focus to the field at the given column index.</summary>
         public void FocusColumn(int colIndex)
         {
-            if (colIndex < 0 || colIndex >= _fieldElements.Count) return;
+            if (colIndex < 0 || colIndex >= _fieldElements.Count)
+            {
+                return;
+            }
             var el = _fieldElements[colIndex];
-            // Defer by one frame so layout is settled before focusing.
             el.schedule.Execute(() => el.Focus()).ExecuteLater(0);
         }
 
@@ -133,7 +138,10 @@ namespace LiveGameDataEditor.Editor
         public void SetColumnWidth(string fieldName, float width)
         {
             var el = this.Q(className: $"col-{fieldName.ToLower()}");
-            if (el == null) return;
+            if (el == null)
+            {
+                return;
+            }
             el.style.width      = width;
             el.style.minWidth   = width;
             el.style.flexGrow   = 0;
@@ -146,7 +154,10 @@ namespace LiveGameDataEditor.Editor
         public void ResetColumnSizing(string fieldName, GameDataColumnDefinition col)
         {
             var el = this.Q(className: $"col-{fieldName.ToLower()}");
-            if (el == null) return;
+            if (el == null)
+            {
+                return;
+            }
             ApplySizing(el, col);
         }
 
@@ -164,9 +175,12 @@ namespace LiveGameDataEditor.Editor
 
             _dragHandle.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (evt.button != 0) return;
+                if (evt.button != 0)
+                {
+                    return;
+                }
                 OnDragHandlePointerDown?.Invoke();
-                evt.StopPropagation(); // prevent row selection toggle
+                evt.StopPropagation();
             }, TrickleDown.TrickleDown);
 
             // Prevent click on handle from toggling row selection

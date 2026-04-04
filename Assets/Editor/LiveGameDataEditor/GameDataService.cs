@@ -45,7 +45,10 @@ namespace LiveGameDataEditor.Editor
         /// <summary>Adds a default entry, recording an Undo operation first.</summary>
         public static void AddEntry(GameDataContainer container)
         {
-            if (container == null) return;
+            if (container == null)
+            {
+                return;
+            }
             Undo.RecordObject(container, "Add Game Data Entry");
             container.Entries.Add(new GameDataEntry());
             MarkDirty(container);
@@ -57,7 +60,10 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public static void RemoveEntries(GameDataContainer container, List<int> indices)
         {
-            if (container == null || indices == null || indices.Count == 0) return;
+            if (container == null || indices == null || indices.Count == 0)
+            {
+                return;
+            }
 
             Undo.RecordObject(container, indices.Count == 1
                 ? "Remove Game Data Entry"
@@ -69,7 +75,9 @@ namespace LiveGameDataEditor.Editor
             {
                 int idx = sorted[i];
                 if (idx >= 0 && idx < container.Entries.Count)
+                {
                     container.Entries.RemoveAt(idx);
+                }
             }
 
             MarkDirty(container);
@@ -81,7 +89,10 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public static void UpdateEntry(GameDataContainer container, int index, GameDataEntry updated)
         {
-            if (container == null || index < 0 || index >= container.Entries.Count) return;
+            if (container == null || index < 0 || index >= container.Entries.Count)
+            {
+                return;
+            }
             Undo.RecordObject(container, "Edit Game Data Entry");
             container.Entries[index] = updated;
             MarkDirty(container);
@@ -109,7 +120,10 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public static bool OnValidateEntry(IGameDataEntry entry, IDataValidator validator = null)
         {
-            if (validator == null) return true;
+            if (validator == null)
+            {
+                return true;
+            }
             return validator.Validate(entry, out _);
         }
 
@@ -124,7 +138,10 @@ namespace LiveGameDataEditor.Editor
         public static void AddEntry(IGameDataContainer container)
         {
             var so = GetScriptableObject(container);
-            if (so == null) return;
+            if (so == null)
+            {
+                return;
+            }
 
             Undo.RecordObject(so, "Add Game Data Entry");
             var entry = (IGameDataEntry)Activator.CreateInstance(container.EntryType);
@@ -136,7 +153,10 @@ namespace LiveGameDataEditor.Editor
         public static void RemoveEntries(IGameDataContainer container, List<int> indices)
         {
             var so = GetScriptableObject(container);
-            if (so == null || indices == null || indices.Count == 0) return;
+            if (so == null || indices == null || indices.Count == 0)
+            {
+                return;
+            }
 
             Undo.RecordObject(so, indices.Count == 1
                 ? "Remove Game Data Entry"
@@ -149,7 +169,9 @@ namespace LiveGameDataEditor.Editor
             {
                 int idx = sorted[i];
                 if (idx >= 0 && idx < entries.Count)
+                {
                     entries.RemoveAt(idx);
+                }
             }
             EditorUtility.SetDirty(so);
         }
@@ -158,10 +180,16 @@ namespace LiveGameDataEditor.Editor
         public static void UpdateEntry(IGameDataContainer container, int index, IGameDataEntry updated)
         {
             var so = GetScriptableObject(container);
-            if (so == null) return;
+            if (so == null)
+            {
+                return;
+            }
 
             IList entries = container.GetEntries();
-            if (index < 0 || index >= entries.Count) return;
+            if (index < 0 || index >= entries.Count)
+            {
+                return;
+            }
 
             Undo.RecordObject(so, "Edit Game Data Entry");
             entries[index] = updated;
@@ -172,7 +200,9 @@ namespace LiveGameDataEditor.Editor
         public static void MarkDirty(IGameDataContainer container)
         {
             if (container is ScriptableObject so)
+            {
                 EditorUtility.SetDirty(so);
+            }
         }
 
         // ── Entry duplication ──────────────────────────────────────────────────────
@@ -185,23 +215,29 @@ namespace LiveGameDataEditor.Editor
         public static void MoveEntry(IGameDataContainer container, int fromIndex, int insertBefore)
         {
             var so = GetScriptableObject(container);
-            if (so == null) return;
+            if (so == null)
+            {
+                return;
+            }
 
             IList entries = container.GetEntries();
-            if (fromIndex < 0 || fromIndex >= entries.Count) return;
+            if (fromIndex < 0 || fromIndex >= entries.Count)
+            {
+                return;
+            }
 
-            // Clamp insertBefore to [0, entries.Count]
             insertBefore = Mathf.Clamp(insertBefore, 0, entries.Count);
 
-            // No-op: dropping immediately before or after itself
-            if (insertBefore == fromIndex || insertBefore == fromIndex + 1) return;
+            if (insertBefore == fromIndex || insertBefore == fromIndex + 1)
+            {
+                return;
+            }
 
             Undo.RecordObject(so, "Reorder Game Data Entry");
 
             var entry = entries[fromIndex];
             entries.RemoveAt(fromIndex);
 
-            // After removal, indices above fromIndex shift down by 1
             int finalIdx = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
             finalIdx = Mathf.Clamp(finalIdx, 0, entries.Count);
             entries.Insert(finalIdx, entry);
@@ -217,7 +253,10 @@ namespace LiveGameDataEditor.Editor
         public static void DuplicateEntries(IGameDataContainer container, List<int> indices)
         {
             var so = GetScriptableObject(container);
-            if (so == null || indices == null || indices.Count == 0) return;
+            if (so == null || indices == null || indices.Count == 0)
+            {
+                return;
+            }
 
             Undo.RecordObject(so, indices.Count == 1
                 ? "Duplicate Entry"
@@ -231,7 +270,10 @@ namespace LiveGameDataEditor.Editor
             for (int i = sorted.Count - 1; i >= 0; i--)
             {
                 int idx = sorted[i];
-                if (idx < 0 || idx >= entries.Count) continue;
+                if (idx < 0 || idx >= entries.Count)
+                {
+                    continue;
+                }
                 var clone = CloneEntry((IGameDataEntry)entries[idx], container.EntryType);
                 entries.Insert(idx + 1, clone);
             }
@@ -249,7 +291,10 @@ namespace LiveGameDataEditor.Editor
                 if (val is IList list)
                 {
                     var listClone = (IList)Activator.CreateInstance(val.GetType());
-                    foreach (var item in list) listClone.Add(item);
+                    foreach (var item in list)
+                    {
+                        listClone.Add(item);
+                    }
                     field.SetValue(clone, listClone);
                 }
                 else
@@ -263,8 +308,12 @@ namespace LiveGameDataEditor.Editor
         /// <summary>
         /// Exports data to a user-chosen JSON file. Works for any <see cref="IGameDataContainer"/>.
         /// </summary>
-        public static void ExportToJson(IGameDataContainer container)        {
-            if (container == null) return;
+        public static void ExportToJson(IGameDataContainer container)
+        {
+            if (container == null)
+            {
+                return;
+            }
 
             var so = container as ScriptableObject;
             string defaultName = so != null ? so.name : container.EntryType.Name;
@@ -274,7 +323,10 @@ namespace LiveGameDataEditor.Editor
                 defaultName + ".json",
                 "json");
 
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
 
             string json = GameDataJsonSerializer.Default.Serialize(container, indented: true);
             File.WriteAllText(path, json);
@@ -289,14 +341,20 @@ namespace LiveGameDataEditor.Editor
         public static void ImportFromJson(IGameDataContainer container)
         {
             var so = GetScriptableObject(container);
-            if (so == null) return;
+            if (so == null)
+            {
+                return;
+            }
 
             string path = EditorUtility.OpenFilePanel(
                 "Import Game Data from JSON",
                 Application.dataPath,
                 "json");
 
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
 
             string json = File.ReadAllText(path);
 
@@ -305,7 +363,9 @@ namespace LiveGameDataEditor.Editor
             EditorUtility.SetDirty(so);
 
             if (container is GameDataContainer gc)
+            {
                 OnDataImported?.Invoke(gc);
+            }
 
             Debug.Log($"[LiveGameDataEditor] Imported {container.GetEntries().Count} entries from: {path}");
         }
@@ -315,7 +375,10 @@ namespace LiveGameDataEditor.Editor
         /// <summary>Exports data to a user-chosen CSV file.</summary>
         public static void ExportToCsv(IGameDataContainer container)
         {
-            if (container == null) return;
+            if (container == null)
+            {
+                return;
+            }
 
             var so = container as ScriptableObject;
             string defaultName = so != null ? so.name : container.EntryType.Name;
@@ -325,7 +388,10 @@ namespace LiveGameDataEditor.Editor
                 defaultName + ".csv",
                 "csv");
 
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
 
             string csv = GameDataCsvSerializer.Serialize(container);
             File.WriteAllText(path, csv, System.Text.Encoding.UTF8);
@@ -340,14 +406,20 @@ namespace LiveGameDataEditor.Editor
         public static void ImportFromCsv(IGameDataContainer container)
         {
             var so = GetScriptableObject(container);
-            if (so == null) return;
+            if (so == null)
+            {
+                return;
+            }
 
             string path = EditorUtility.OpenFilePanel(
                 "Import Game Data from CSV",
                 Application.dataPath,
                 "csv");
 
-            if (string.IsNullOrEmpty(path)) return;
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
 
             string csv = File.ReadAllText(path, System.Text.Encoding.UTF8);
 
@@ -365,10 +437,15 @@ namespace LiveGameDataEditor.Editor
         // Returns the container cast to ScriptableObject, logging a warning if the cast fails.
         private static ScriptableObject GetScriptableObject(IGameDataContainer container)
         {
-            if (container == null) return null;
+            if (container == null)
+            {
+                return null;
+            }
             var so = container as ScriptableObject;
             if (so == null)
+            {
                 Debug.LogWarning("[LiveGameDataEditor] Container does not inherit ScriptableObject; changes will not be saved.");
+            }
             return so;
         }
     }

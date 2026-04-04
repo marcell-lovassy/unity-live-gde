@@ -196,7 +196,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (evt.button != 0) return;
+                if (evt.button != 0)
+                {
+                    return;
+                }
                 dragging   = true;
                 dragStartX = evt.position.x;
                 dragStartW = _browserPanel.resolvedStyle.width;
@@ -206,7 +209,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerMoveEvent>(evt =>
             {
-                if (!dragging) return;
+                if (!dragging)
+                {
+                    return;
+                }
                 float newW = Mathf.Clamp(dragStartW + (evt.position.x - dragStartX), 120f, 500f);
                 _browserPanel.style.width = newW;
                 evt.StopPropagation();
@@ -214,7 +220,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerUpEvent>(evt =>
             {
-                if (!dragging) return;
+                if (!dragging)
+                {
+                    return;
+                }
                 dragging = false;
                 handle.ReleasePointer(evt.pointerId);
                 evt.StopPropagation();
@@ -297,7 +306,10 @@ namespace LiveGameDataEditor.Editor
 
         private void RunValidation()
         {
-            if (_container == null) return;
+            if (_container == null)
+            {
+                return;
+            }
             var results = GameDataValidationService.RunAll(_container);
             _tableView.ApplyValidation(results);
         }
@@ -312,7 +324,9 @@ namespace LiveGameDataEditor.Editor
             bool dirty = so != null && EditorUtility.IsDirty(so);
             string title = dirty ? "● Game Data Editor" : "Game Data Editor";
             if (titleContent.text != title)
+            {
                 titleContent.text = title;
+            }
         }
 
         private void ToggleBrowser()

@@ -152,7 +152,11 @@ namespace LiveGameDataEditor.Editor
             _statsLabels.Clear();
             _statsCells.Clear();
 
-            if (container == null) { RebuildStatsRow(); return; }
+            if (container == null)
+            {
+                RebuildStatsRow();
+                return;
+            }
 
             // Rebuild columns from the container's entry type
             _columns = GameDataColumnDefinition.FromType(container.EntryType);
@@ -173,7 +177,9 @@ namespace LiveGameDataEditor.Editor
 
                 // Apply any existing column width overrides to this new row.
                 foreach (var kvp in _colWidthOverrides)
+                {
                     row.SetColumnWidth(kvp.Key, kvp.Value);
+                }
 
                 _rows.Add(row);
             }
@@ -284,7 +290,10 @@ namespace LiveGameDataEditor.Editor
 
         private void ApplyFilterAndSort()
         {
-            if (_container == null) return;
+            if (_container == null)
+            {
+                return;
+            }
 
             var entries = _container.GetEntries();
 
@@ -301,13 +310,18 @@ namespace LiveGameDataEditor.Editor
                 if (_enabledOnly && enabledField != null)
                 {
                     var enabledVal = enabledField.GetValue(entry);
-                    if (enabledVal is bool b && !b) continue;
+                    if (enabledVal is bool b && !b)
+                    {
+                        continue;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(_searchText) &&
                     (entry.Id == null ||
                      entry.Id.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) < 0))
+                {
                     continue;
+                }
 
                 visible.Add(i);
             }
@@ -331,7 +345,9 @@ namespace LiveGameDataEditor.Editor
             // Step 3: repopulate ScrollView with the ordered, filtered rows
             _scrollView.Clear();
             foreach (int i in visible)
+            {
                 _scrollView.Add(_rows[i]);
+            }
 
             // Step 4: update visible index cache and stats
             _visibleIndices.Clear();
@@ -376,7 +392,10 @@ namespace LiveGameDataEditor.Editor
             _statsCountLabel.AddToClassList("stats-count-label");
             _statsRow.Add(_statsCountLabel);
 
-            if (_columns == null || _columns.Count == 0) return;
+            if (_columns == null || _columns.Count == 0)
+            {
+                return;
+            }
 
             foreach (var col in _columns)
             {
@@ -386,7 +405,9 @@ namespace LiveGameDataEditor.Editor
                 ApplySizing(label, col);
                 // Apply any existing override
                 if (_colWidthOverrides.TryGetValue(col.Field.Name, out float w))
+                {
                     SetFixedWidth(label, w);
+                }
                 _statsRow.Add(label);
                 _statsLabels.Add(label);
                 _statsCells[col.Field.Name] = label;
@@ -399,9 +420,14 @@ namespace LiveGameDataEditor.Editor
         private void UpdateStatsRow()
         {
             if (_statsCountLabel != null)
+            {
                 _statsCountLabel.text = $"{_visibleIndices.Count} row{(_visibleIndices.Count == 1 ? "" : "s")}";
+            }
 
-            if (_container == null || _statsLabels.Count == 0) return;
+            if (_container == null || _statsLabels.Count == 0)
+            {
+                return;
+            }
 
             var entries = _container.GetEntries();
 
@@ -410,7 +436,11 @@ namespace LiveGameDataEditor.Editor
                 var col   = _columns[ci];
                 var label = _statsLabels[ci];
 
-                if (!col.IsInt && !col.IsFloat) { label.text = string.Empty; continue; }
+                if (!col.IsInt && !col.IsFloat)
+                {
+                    label.text = string.Empty;
+                    continue;
+                }
 
                 double sum = 0;
                 int    count = 0;
@@ -429,9 +459,12 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
-        private void OnHeaderClicked(string fieldName)        {
+        private void OnHeaderClicked(string fieldName)
+        {
             if (_sortField == fieldName)
+            {
                 _sortAsc = !_sortAsc;
+            }
             else
             {
                 _sortField = fieldName;
@@ -446,7 +479,10 @@ namespace LiveGameDataEditor.Editor
         {
             foreach (var col in _columns)
             {
-                if (!_sortIndicators.TryGetValue(col.Field.Name, out var indicator)) continue;
+                if (!_sortIndicators.TryGetValue(col.Field.Name, out var indicator))
+                {
+                    continue;
+                }
 
                 if (col.Field.Name == _sortField)
                 {
@@ -468,7 +504,12 @@ namespace LiveGameDataEditor.Editor
             if (!isMultiSelect)
             {
                 foreach (int i in _selectedIndices)
-                    if (i < _rows.Count) _rows[i].SetSelected(false);
+                {
+                    if (i < _rows.Count)
+                    {
+                        _rows[i].SetSelected(false);
+                    }
+                }
                 _selectedIndices.Clear();
             }
 
@@ -488,13 +529,19 @@ namespace LiveGameDataEditor.Editor
 
         private void RemoveSelected()
         {
-            if (_selectedIndices.Count == 0) return;
+            if (_selectedIndices.Count == 0)
+            {
+                return;
+            }
             _onRemoveEntries?.Invoke(new List<int>(_selectedIndices));
         }
 
         private void DuplicateSelected()
         {
-            if (_selectedIndices.Count == 0) return;
+            if (_selectedIndices.Count == 0)
+            {
+                return;
+            }
             _onDuplicateEntries?.Invoke(new List<int>(_selectedIndices));
         }
 
@@ -507,20 +554,10 @@ namespace LiveGameDataEditor.Editor
         private void NavigateToNextRow(GameDataRowView sourceRow, int colIndex)
         {
             int visibleIndex = _scrollView.IndexOf(sourceRow);
-            if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1) return;
-            (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
-        }
-
-        // ── Keyboard navigation ────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Called by a row's <see cref="GameDataRowView.OnRequestNextRow"/> event.
-        /// Finds the next visible row and focuses the same column.
-        /// </summary>
-        private void NavigateToNextRow(GameDataRowView sourceRow, int colIndex)
-        {
-            int visibleIndex = _scrollView.IndexOf(sourceRow);
-            if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1) return;
+            if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1)
+            {
+                return;
+            }
             (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
         }
 
@@ -531,13 +568,17 @@ namespace LiveGameDataEditor.Editor
         {
             bool enabled = IsDragEnabled;
             foreach (var row in _rows)
+            {
                 row.SetDragEnabled(enabled);
+            }
         }
 
-        /// <summary>Called when a row's drag handle is pressed. Begins a drag operation.</summary>
         private void BeginRowDrag(int dataIndex)
         {
-            if (!IsDragEnabled) return;
+            if (!IsDragEnabled)
+            {
+                return;
+            }
             _isDragging        = true;
             _draggingDataIndex = dataIndex;
             _dropTargetVisibleIdx = -1;
@@ -545,7 +586,10 @@ namespace LiveGameDataEditor.Editor
 
         private void OnDragPointerMove(PointerMoveEvent evt)
         {
-            if (!_isDragging) return;
+            if (!_isDragging)
+            {
+                return;
+            }
 
             int newTarget = ComputeDropTarget(evt.position);
             if (newTarget != _dropTargetVisibleIdx)
@@ -557,7 +601,10 @@ namespace LiveGameDataEditor.Editor
 
         private void OnDragPointerUp(PointerUpEvent evt)
         {
-            if (!_isDragging) return;
+            if (!_isDragging)
+            {
+                return;
+            }
 
             _isDragging = false;
             _dropIndicator.RemoveFromHierarchy();
@@ -568,9 +615,14 @@ namespace LiveGameDataEditor.Editor
             _draggingDataIndex    = -1;
             _dropTargetVisibleIdx = -1;
 
-            // Validate and fire move
-            if (from < 0 || insertBefore < 0) return;
-            if (insertBefore == from || insertBefore == from + 1) return; // no-op
+            if (from < 0 || insertBefore < 0)
+            {
+                return;
+            }
+            if (insertBefore == from || insertBefore == from + 1)
+            {
+                return;
+            }
 
             _onMoveEntry?.Invoke(from, insertBefore);
         }
@@ -590,10 +642,16 @@ namespace LiveGameDataEditor.Editor
             for (int ci = 0; ci < content.childCount; ci++)
             {
                 var child = content[ci];
-                if (child == _dropIndicator) continue;
+                if (child == _dropIndicator)
+                {
+                    continue;
+                }
 
                 float midY = child.layout.y + child.layout.height * 0.5f;
-                if (y < midY) return realRowIdx;
+                if (y < midY)
+                {
+                    return realRowIdx;
+                }
                 realRowIdx++;
             }
             return realRowIdx; // after all rows
@@ -606,23 +664,37 @@ namespace LiveGameDataEditor.Editor
         private void UpdateDropIndicator()
         {
             _dropIndicator.RemoveFromHierarchy();
-            if (!_isDragging || _dropTargetVisibleIdx < 0) return;
+            if (!_isDragging || _dropTargetVisibleIdx < 0)
+            {
+                return;
+            }
 
             var content = _scrollView.contentContainer;
 
             // Count real rows (excluding the indicator itself)
-            int realCount = 0;
-            for (int ci = 0; ci < content.childCount; ci++)
-                if (content[ci] != _dropIndicator) realCount++;
+            var realCount = 0;
+            for (var ci = 0; ci < content.childCount; ci++)
+            {
+                if (content[ci] != _dropIndicator)
+                {
+                    realCount++;
+                }
+            }
 
             int insertAt = Mathf.Clamp(_dropTargetVisibleIdx, 0, realCount);
             if (insertAt >= content.childCount)
+            {
                 content.Add(_dropIndicator);
+            }
             else
+            {
                 content.Insert(insertAt, _dropIndicator);
+            }
         }
 
+        // ── Column resizing ────────────────────────────────────────────────────────
 
+        private VisualElement BuildResizeHandle(GameDataColumnDefinition col)
         {
             var handle = new VisualElement();
             handle.AddToClassList("col-resize-handle");
@@ -637,7 +709,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (evt.button != 0) return;
+                if (evt.button != 0)
+                {
+                    return;
+                }
 
                 // Double-click → reset column to default flex sizing
                 if (evt.clickCount == 2)
@@ -646,11 +721,17 @@ namespace LiveGameDataEditor.Editor
                     handle.ReleasePointer(evt.pointerId);
                     _colWidthOverrides.Remove(fieldName);
                     if (_headerCells.TryGetValue(fieldName, out var hc))
+                    {
                         ApplySizing(hc, col);
+                    }
                     if (_statsCells.TryGetValue(fieldName, out var sc))
+                    {
                         ApplySizing(sc, col);
+                    }
                     foreach (var row in _rows)
+                    {
                         row.ResetColumnSizing(fieldName, col);
+                    }
                     evt.StopPropagation();
                     return;
                 }
@@ -666,7 +747,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerMoveEvent>(evt =>
             {
-                if (!dragging) return;
+                if (!dragging)
+                {
+                    return;
+                }
                 float newWidth = Mathf.Max(col.MinWidth, dragStartW + (evt.position.x - dragStartX));
                 ApplyWidthOverride(fieldName, newWidth);
                 evt.StopPropagation();
@@ -674,7 +758,10 @@ namespace LiveGameDataEditor.Editor
 
             handle.RegisterCallback<PointerUpEvent>(evt =>
             {
-                if (!dragging) return;
+                if (!dragging)
+                {
+                    return;
+                }
                 dragging = false;
                 handle.ReleasePointer(evt.pointerId);
                 evt.StopPropagation();
@@ -692,13 +779,19 @@ namespace LiveGameDataEditor.Editor
             _colWidthOverrides[fieldName] = width;
 
             if (_headerCells.TryGetValue(fieldName, out var headerCell))
+            {
                 SetFixedWidth(headerCell, width);
+            }
 
             if (_statsCells.TryGetValue(fieldName, out var statsCell))
+            {
                 SetFixedWidth(statsCell, width);
+            }
 
             foreach (var row in _rows)
+            {
                 row.SetColumnWidth(fieldName, width);
+            }
         }
 
         private static void SetFixedWidth(VisualElement el, float width)

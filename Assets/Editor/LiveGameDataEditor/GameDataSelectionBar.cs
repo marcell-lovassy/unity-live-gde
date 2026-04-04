@@ -151,7 +151,10 @@ namespace LiveGameDataEditor.Editor
                 menu.AddItem(new GUIContent(label), false, () =>
                 {
                     var container = GameDataAssetFactory.CreateForEntryType(type);
-                    if (container == null) return;
+                    if (container == null)
+                    {
+                        return;
+                    }
 
                     _current = container as ScriptableObject;
                     UpdateInfo(container);
