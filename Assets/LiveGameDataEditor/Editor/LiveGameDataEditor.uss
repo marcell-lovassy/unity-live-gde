@@ -892,6 +892,52 @@
     background-color: #245a8a;
 }
 
+/* ── Test Connection ─────────────────────────────────────────────────────── */
+
+.welcome-wizard-test-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 16px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+
+.welcome-wizard-test-btn {
+    font-size: 13px;
+    height: 28px;
+    min-width: 140px;
+    background-color: #2a3a2a;
+    border-color: #3a6a3a;
+    color: #80c880;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.welcome-wizard-test-btn:hover {
+    background-color: #344834;
+}
+
+.welcome-wizard-test-status {
+    font-size: 12px;
+    color: #888888;
+    flex-shrink: 1;
+    white-space: normal;
+}
+
+.welcome-wizard-test-status--ok {
+    color: #7ec8a0;
+    -unity-font-style: bold;
+}
+
+.welcome-wizard-test-status--fail {
+    color: #e07070;
+}
+
+.welcome-wizard-test-status--testing {
+    color: #aaaaaa;
+}
+
 .welcome-link-btn {
     font-size: 13px;
     height: 26px;

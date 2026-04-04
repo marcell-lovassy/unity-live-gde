@@ -31,6 +31,54 @@ namespace LiveGameDataEditor.GoogleSheets
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
+        /// Verifies that the current <paramref name="config"/> can reach the Google Sheets API.
+        /// Makes the lightest possible request: spreadsheet metadata (title only, no cell data).
+        /// Returns a <see cref="SyncResult"/> with the spreadsheet title on success or a
+        /// human-readable error message on failure.
+        /// </summary>
+        public static async Task<SyncResult> TestConnectionAsync(GoogleSheetsConfig config)
+        {
+            try
+            {
+                if (config == null)
+                {
+                    return SyncResult.Fail("No GoogleSheetsConfig provided.");
+                }
+
+                if (!config.IsConfigured())
+                {
+                    string missing = DescribeMissingFields(config);
+                    return SyncResult.Fail($"Config incomplete — {missing}");
+                }
+
+                string url = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}?fields=properties.title";
+                string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
+                if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
+                {
+                    url += "&key=" + Uri.EscapeDataString(config.ApiKey);
+                }
+
+                string response = await SendRequestAsync("GET", url, authHeader, null);
+                var responseObj = JObject.Parse(response);
+                string title = (string)responseObj["properties"]?["title"] ?? config.SpreadsheetId;
+
+                return SyncResult.Ok($"Connected — \"{title}\"");
+            }
+            catch (GoogleSheetsAuthException ex)
+            {
+                return SyncResult.Fail("Authentication failed: " + ex.Message);
+            }
+            catch (GoogleSheetsApiException ex)
+            {
+                return SyncResult.Fail($"API error ({ex.StatusCode}): " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return SyncResult.Fail("Unexpected error: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Pushes all entries from <paramref name="container"/> to the configured Google Sheet.
         /// Returns a result indicating success or failure with a human-readable message.
         /// </summary>
@@ -364,6 +412,34 @@ namespace LiveGameDataEditor.GoogleSheets
                     "GoogleSheetsConfig is not fully configured.\n" +
                     "Make sure SpreadsheetId and the relevant credential fields are filled in.");
             }
+        }
+
+        private static string DescribeMissingFields(GoogleSheetsConfig config)
+        {
+            if (string.IsNullOrWhiteSpace(config.SpreadsheetId))
+            {
+                return "Spreadsheet ID is empty";
+            }
+            if (config.AuthMode == GoogleSheetsAuthMode.ApiKey && string.IsNullOrWhiteSpace(config.ApiKey))
+            {
+                return "API Key is empty";
+            }
+            if (config.AuthMode == GoogleSheetsAuthMode.OAuth)
+            {
+                if (string.IsNullOrWhiteSpace(config.OAuthClientId))
+                {
+                    return "OAuth Client ID is empty";
+                }
+                if (string.IsNullOrWhiteSpace(config.OAuthClientSecret))
+                {
+                    return "OAuth Client Secret is empty";
+                }
+            }
+            if (config.AuthMode == GoogleSheetsAuthMode.ServiceAccount && string.IsNullOrWhiteSpace(config.ServiceAccountJsonPath))
+            {
+                return "Service Account JSON path is empty";
+            }
+            return "unknown field";
         }
     }
 

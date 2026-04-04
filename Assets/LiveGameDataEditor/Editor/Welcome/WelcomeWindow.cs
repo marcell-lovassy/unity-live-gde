@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using LiveGameDataEditor.GoogleSheets;
 using UnityEditor;
 using UnityEngine;
@@ -44,6 +45,7 @@ namespace LiveGameDataEditor.Editor
         private string             _wizardConfigPath;
         private string             _wizardFolderPath = "Assets";
         private VisualElement      _wizardAuthCredentials; // swapped on auth-mode change
+        private Label              _testStatusLabel;       // updated by TestConnectionAsync
 
         // ── Menu item ─────────────────────────────────────────────────────────
 
@@ -557,6 +559,9 @@ namespace LiveGameDataEditor.Editor
                           "type name (e.g. \"EnemyDataEntry\")."));
             form.Add(step3);
 
+            // ── Test Connection ────────────────────────────────────────────────
+            form.Add(BuildTestConnectionRow());
+
             // ── CTA ────────────────────────────────────────────────────────────
             var openBtn = new Button(() =>
             {
@@ -657,12 +662,82 @@ namespace LiveGameDataEditor.Editor
             }, placeholder: "e.g.  C:/credentials/my-project-key.json"));
         }
 
+        // ── Wizard: test connection ────────────────────────────────────────────
+
+        private VisualElement BuildTestConnectionRow()
+        {
+            var row = new VisualElement();
+            row.AddToClassList("welcome-wizard-test-row");
+
+            var btn = new Button();
+            btn.text = "Test Connection";
+            btn.AddToClassList("welcome-wizard-test-btn");
+
+            _testStatusLabel = new Label();
+            _testStatusLabel.AddToClassList("welcome-wizard-test-status");
+
+            btn.clicked += () =>
+            {
+                _ = RunTestConnectionAsync(btn);
+            };
+
+            row.Add(btn);
+            row.Add(_testStatusLabel);
+            return row;
+        }
+
+        private async Task RunTestConnectionAsync(Button testBtn)
+        {
+            testBtn.SetEnabled(false);
+            SetTestStatus("testing", "⏳  Testing connection…");
+
+            SyncResult result = await GoogleSheetsService.TestConnectionAsync(_wizardConfig);
+
+            // Guard: window may have been closed while the async call was in flight.
+            if (testBtn == null || _testStatusLabel == null)
+            {
+                return;
+            }
+
+            testBtn.SetEnabled(true);
+            if (result.Success)
+            {
+                SetTestStatus("ok", $"✓  {result.Message}");
+            }
+            else
+            {
+                SetTestStatus("fail", $"✗  {result.Message}");
+            }
+        }
+
+        private void SetTestStatus(string state, string message)
+        {
+            if (_testStatusLabel == null)
+            {
+                return;
+            }
+            _testStatusLabel.text = message;
+            _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--ok");
+            _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--fail");
+            _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--testing");
+            if (!string.IsNullOrEmpty(state))
+            {
+                _testStatusLabel.AddToClassList($"welcome-wizard-test-status--{state}");
+            }
+        }
+
+        private void ResetTestStatus()
+        {
+            SetTestStatus("", "");
+        }
+
         private void SaveWizardConfig()
         {
             if (_wizardConfig == null)
             {
                 return;
             }
+            ResetTestStatus(); // stale test result no longer valid after a field change
             EditorUtility.SetDirty(_wizardConfig);
             AssetDatabase.SaveAssets();
         }
