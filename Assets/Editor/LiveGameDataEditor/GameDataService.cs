@@ -178,6 +178,38 @@ namespace LiveGameDataEditor.Editor
         // ── Entry duplication ──────────────────────────────────────────────────────
 
         /// <summary>
+        /// Moves the entry at <paramref name="fromIndex"/> so that it appears before the
+        /// entry currently at <paramref name="insertBefore"/> (pass <c>entries.Count</c>
+        /// to move it to the end). Wrapped in a single Undo operation.
+        /// </summary>
+        public static void MoveEntry(IGameDataContainer container, int fromIndex, int insertBefore)
+        {
+            var so = GetScriptableObject(container);
+            if (so == null) return;
+
+            IList entries = container.GetEntries();
+            if (fromIndex < 0 || fromIndex >= entries.Count) return;
+
+            // Clamp insertBefore to [0, entries.Count]
+            insertBefore = Mathf.Clamp(insertBefore, 0, entries.Count);
+
+            // No-op: dropping immediately before or after itself
+            if (insertBefore == fromIndex || insertBefore == fromIndex + 1) return;
+
+            Undo.RecordObject(so, "Reorder Game Data Entry");
+
+            var entry = entries[fromIndex];
+            entries.RemoveAt(fromIndex);
+
+            // After removal, indices above fromIndex shift down by 1
+            int finalIdx = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+            finalIdx = Mathf.Clamp(finalIdx, 0, entries.Count);
+            entries.Insert(finalIdx, entry);
+
+            EditorUtility.SetDirty(so);
+        }
+
+        /// <summary>
         /// Creates a deep copy of each entry at the given indices and inserts the clones
         /// immediately after their originals. Wrapped in a single Undo operation.
         /// Handles <c>List&lt;T&gt;</c> and array fields by cloning the collection.

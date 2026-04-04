@@ -265,7 +265,8 @@ namespace LiveGameDataEditor.Editor
                 onEntryChanged:     OnEntryChanged,
                 onAddEntry:         OnAddEntry,
                 onRemoveEntries:    OnRemoveEntries,
-                onDuplicateEntries: OnDuplicateEntries);
+                onDuplicateEntries: OnDuplicateEntries,
+                onMoveEntry:        OnMoveEntry);
 
             _contentArea.Add(_tableView);
             _mainContent.Add(_contentArea);
@@ -365,6 +366,12 @@ namespace LiveGameDataEditor.Editor
         private void OnDuplicateEntries(List<int> indices)
         {
             GameDataService.DuplicateEntries(_container, indices);
+            RefreshView();
+        }
+
+        private void OnMoveEntry(int fromIndex, int insertBefore)
+        {
+            GameDataService.MoveEntry(_container, fromIndex, insertBefore);
             RefreshView();
         }
     }

@@ -139,10 +139,40 @@
 
 /* ── Column widths (shared by header cells and row fields) ─── */
 .col-gutter {
-    width: 8px;
-    min-width: 8px;
+    width: 26px;
+    min-width: 26px;
+    flex-shrink: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Drag handle ──────────────────────────────────────────── */
+.drag-handle {
+    width: 18px;
+    height: 100%;
+    -unity-text-align: middle-center;
+    font-size: 12px;
+    color: #555;
+    cursor: link; /* closest supported cursor to 'grab' in Unity UI Toolkit */
+    padding: 0;
+    margin: 0;
     flex-shrink: 0;
 }
+
+.drag-handle:hover {
+    color: #999;
+}
+
+/* ── Drop indicator (thin line shown during drag) ─────────── */
+.drop-indicator {
+    height: 2px;
+    background-color: #4a9eff;
+    margin: 0 4px;
+    flex-shrink: 0;
+    border-radius: 1px;
+}
+
 
 /* These USS classes act as overrides; inline styles from
    GameDataColumnDefinition.BuildDef() are the authoritative defaults. */

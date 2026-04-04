@@ -44,12 +44,19 @@ namespace LiveGameDataEditor.Editor
         /// </summary>
         public event Action<int> OnRequestNextRow;
 
+        /// <summary>
+        /// Raised when the drag handle receives a pointer-down (left button).
+        /// The table view subscribes to begin a drag operation for this row.
+        /// </summary>
+        public event Action OnDragHandlePointerDown;
+
         // ── State ──────────────────────────────────────────────────────────────────
 
         private readonly Dictionary<string, object>          _fieldValues   = new();
         private readonly IReadOnlyList<GameDataColumnDefinition> _columns;
         private readonly Type                                _entryType;
         private readonly List<VisualElement>                 _fieldElements = new();
+        private VisualElement                                _dragHandle;
 
         // ── Constructor ────────────────────────────────────────────────────────────
 
@@ -76,6 +83,19 @@ namespace LiveGameDataEditor.Editor
         }
 
         // ── Public API ─────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Shows or hides the drag handle. Call with <c>false</c> when sorting/filtering
+        /// is active — reordering is disabled in that state.
+        /// </summary>
+        public void SetDragEnabled(bool enabled)
+        {
+            if (_dragHandle == null) return;
+            _dragHandle.style.display = enabled ? DisplayStyle.Flex : DisplayStyle.None;
+            _dragHandle.tooltip = enabled
+                ? "Drag to reorder"
+                : "Remove sorting to enable drag-to-reorder";
+        }
 
         public void SetSelected(bool selected) =>
             EnableInClassList("table-row--selected", selected);
@@ -136,6 +156,23 @@ namespace LiveGameDataEditor.Editor
         {
             var gutter = new VisualElement();
             gutter.AddToClassList("col-gutter");
+
+            // Drag handle — shown when drag-to-reorder is enabled (no active sort)
+            _dragHandle = new Label("⠿");
+            _dragHandle.AddToClassList("drag-handle");
+            _dragHandle.tooltip = "Drag to reorder";
+
+            _dragHandle.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                if (evt.button != 0) return;
+                OnDragHandlePointerDown?.Invoke();
+                evt.StopPropagation(); // prevent row selection toggle
+            }, TrickleDown.TrickleDown);
+
+            // Prevent click on handle from toggling row selection
+            _dragHandle.RegisterCallback<ClickEvent>(evt => evt.StopPropagation());
+
+            gutter.Add(_dragHandle);
             Add(gutter);
 
             for (int colIndex = 0; colIndex < _columns.Count; colIndex++)

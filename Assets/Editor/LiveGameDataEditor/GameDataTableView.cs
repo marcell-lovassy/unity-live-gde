@@ -28,6 +28,11 @@ namespace LiveGameDataEditor.Editor
         private readonly Action                      _onAddEntry;
         private readonly Action<List<int>>           _onRemoveEntries;
         private readonly Action<List<int>>           _onDuplicateEntries;
+        /// <summary>
+        /// Called when the user drops a row at a new position.
+        /// Args: (fromDataIndex, insertBeforeDataIndex).
+        /// </summary>
+        private readonly Action<int, int>            _onMoveEntry;
 
         /// <summary>Fired whenever the selection changes. Argument = selected data indices.</summary>
         public event Action<List<int>> OnSelectionChanged;
@@ -64,16 +69,35 @@ namespace LiveGameDataEditor.Editor
         private Label            _statsCountLabel;
         private readonly List<int>   _visibleIndices = new();
 
+        // Drag-to-reorder state
+        private bool          _isDragging       = false;
+        private int           _draggingDataIndex = -1;
+        private int           _dropTargetVisibleIdx = -1; // insert-before position in visible rows
+        private VisualElement _dropIndicator;
+
+        /// <summary>
+        /// Drag is only allowed when no sort and no filter are active.
+        /// With an active sort the display order differs from the data order,
+        /// so reordering would produce unexpected results.
+        /// With active filtering there are gaps in the visible index sequence.
+        /// </summary>
+        private bool IsDragEnabled =>
+            string.IsNullOrEmpty(_sortField) &&
+            string.IsNullOrEmpty(_searchText) &&
+            !_enabledOnly;
+
         public GameDataTableView(
             Action<int, IGameDataEntry> onEntryChanged,
             Action                      onAddEntry,
             Action<List<int>>           onRemoveEntries,
-            Action<List<int>>           onDuplicateEntries = null)
+            Action<List<int>>           onDuplicateEntries = null,
+            Action<int, int>            onMoveEntry        = null)
         {
             _onEntryChanged     = onEntryChanged;
             _onAddEntry         = onAddEntry;
             _onRemoveEntries    = onRemoveEntries;
             _onDuplicateEntries = onDuplicateEntries;
+            _onMoveEntry        = onMoveEntry;
 
             AddToClassList("table-view");
             style.flexGrow = 1;
@@ -101,6 +125,14 @@ namespace LiveGameDataEditor.Editor
 
             BuildStatsRow();
             BuildFooter();
+
+            // Drop indicator — a thin horizontal rule inserted between rows during drag
+            _dropIndicator = new VisualElement();
+            _dropIndicator.AddToClassList("drop-indicator");
+
+            // Track pointer events on this element (table view) to handle drag moves and releases
+            RegisterCallback<PointerMoveEvent>(OnDragPointerMove, TrickleDown.TrickleDown);
+            RegisterCallback<PointerUpEvent>(OnDragPointerUp,   TrickleDown.TrickleDown);
         }
 
         // ── Public API ─────────────────────────────────────────────────────────────
@@ -137,6 +169,7 @@ namespace LiveGameDataEditor.Editor
                 row.OnEntryChanged     += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
                 row.OnSelectionToggled += (isMulti) => HandleRowSelection(capturedIndex, isMulti);
                 row.OnRequestNextRow   += colIndex  => NavigateToNextRow(row, colIndex);
+                row.OnDragHandlePointerDown += () => BeginRowDrag(capturedIndex);
 
                 // Apply any existing column width overrides to this new row.
                 foreach (var kvp in _colWidthOverrides)
@@ -304,6 +337,9 @@ namespace LiveGameDataEditor.Editor
             _visibleIndices.Clear();
             _visibleIndices.AddRange(visible);
             UpdateStatsRow();
+
+            // Step 5: update drag handle visibility (only enabled when no sort/filter is active)
+            RefreshDragHandles();
         }
 
         // ── Stats row ──────────────────────────────────────────────────────────────
@@ -475,9 +511,118 @@ namespace LiveGameDataEditor.Editor
             (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
         }
 
-        // ── Column resizing ────────────────────────────────────────────────────────
+        // ── Keyboard navigation ────────────────────────────────────────────────────
 
-        private VisualElement BuildResizeHandle(GameDataColumnDefinition col)
+        /// <summary>
+        /// Called by a row's <see cref="GameDataRowView.OnRequestNextRow"/> event.
+        /// Finds the next visible row and focuses the same column.
+        /// </summary>
+        private void NavigateToNextRow(GameDataRowView sourceRow, int colIndex)
+        {
+            int visibleIndex = _scrollView.IndexOf(sourceRow);
+            if (visibleIndex < 0 || visibleIndex >= _scrollView.childCount - 1) return;
+            (_scrollView[visibleIndex + 1] as GameDataRowView)?.FocusColumn(colIndex);
+        }
+
+        // ── Drag-to-reorder ────────────────────────────────────────────────────────
+
+        /// <summary>Shows/hides drag handles on all rows based on <see cref="IsDragEnabled"/>.</summary>
+        private void RefreshDragHandles()
+        {
+            bool enabled = IsDragEnabled;
+            foreach (var row in _rows)
+                row.SetDragEnabled(enabled);
+        }
+
+        /// <summary>Called when a row's drag handle is pressed. Begins a drag operation.</summary>
+        private void BeginRowDrag(int dataIndex)
+        {
+            if (!IsDragEnabled) return;
+            _isDragging        = true;
+            _draggingDataIndex = dataIndex;
+            _dropTargetVisibleIdx = -1;
+        }
+
+        private void OnDragPointerMove(PointerMoveEvent evt)
+        {
+            if (!_isDragging) return;
+
+            int newTarget = ComputeDropTarget(evt.position);
+            if (newTarget != _dropTargetVisibleIdx)
+            {
+                _dropTargetVisibleIdx = newTarget;
+                UpdateDropIndicator();
+            }
+        }
+
+        private void OnDragPointerUp(PointerUpEvent evt)
+        {
+            if (!_isDragging) return;
+
+            _isDragging = false;
+            _dropIndicator.RemoveFromHierarchy();
+
+            int from = _draggingDataIndex;
+            int insertBefore = _dropTargetVisibleIdx;
+
+            _draggingDataIndex    = -1;
+            _dropTargetVisibleIdx = -1;
+
+            // Validate and fire move
+            if (from < 0 || insertBefore < 0) return;
+            if (insertBefore == from || insertBefore == from + 1) return; // no-op
+
+            _onMoveEntry?.Invoke(from, insertBefore);
+        }
+
+        /// <summary>
+        /// Calculates the insert-before position (0-based, 0..rowCount) by comparing
+        /// the pointer's Y position against the midpoint of each visible row.
+        /// Ignores the drop indicator element itself.
+        /// </summary>
+        private int ComputeDropTarget(Vector2 worldPos)
+        {
+            var content  = _scrollView.contentContainer;
+            var localPos = content.WorldToLocal(worldPos);
+            float y = localPos.y;
+
+            int realRowIdx = 0;
+            for (int ci = 0; ci < content.childCount; ci++)
+            {
+                var child = content[ci];
+                if (child == _dropIndicator) continue;
+
+                float midY = child.layout.y + child.layout.height * 0.5f;
+                if (y < midY) return realRowIdx;
+                realRowIdx++;
+            }
+            return realRowIdx; // after all rows
+        }
+
+        /// <summary>
+        /// Repositions the drop indicator line in the scroll view content so it appears
+        /// between the appropriate rows. Clamped to valid positions.
+        /// </summary>
+        private void UpdateDropIndicator()
+        {
+            _dropIndicator.RemoveFromHierarchy();
+            if (!_isDragging || _dropTargetVisibleIdx < 0) return;
+
+            var content = _scrollView.contentContainer;
+
+            // Count real rows (excluding the indicator itself)
+            int realCount = 0;
+            for (int ci = 0; ci < content.childCount; ci++)
+                if (content[ci] != _dropIndicator) realCount++;
+
+            int insertAt = Mathf.Clamp(_dropTargetVisibleIdx, 0, realCount);
+            if (insertAt >= content.childCount)
+                content.Add(_dropIndicator);
+            else
+                content.Insert(insertAt, _dropIndicator);
+        }
+
+
         {
             var handle = new VisualElement();
             handle.AddToClassList("col-resize-handle");
