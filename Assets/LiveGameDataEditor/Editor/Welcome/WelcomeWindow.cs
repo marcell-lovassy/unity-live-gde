@@ -447,9 +447,21 @@ namespace LiveGameDataEditor.Editor
             var bar = new VisualElement();
             bar.AddToClassList("welcome-wizard-config-bar");
 
-            var label = new Label($"✓  {Path.GetFileName(_wizardConfigPath)}   ·   {_wizardConfigPath}");
-            label.AddToClassList("welcome-wizard-config-bar-label");
-            bar.Add(label);
+            // Left side: icon + filename on one line, path underneath truncated
+            var textCol = new VisualElement();
+            textCol.style.flexGrow   = 1;
+            textCol.style.flexShrink = 1;
+            textCol.style.overflow   = Overflow.Hidden;
+
+            var nameLabel = new Label($"✓  {Path.GetFileName(_wizardConfigPath)}");
+            nameLabel.AddToClassList("welcome-wizard-config-bar-name");
+            textCol.Add(nameLabel);
+
+            var pathLabel = new Label(_wizardConfigPath);
+            pathLabel.AddToClassList("welcome-wizard-config-bar-path");
+            textCol.Add(pathLabel);
+
+            bar.Add(textCol);
 
             var pingBtn = new Button(() => EditorGUIUtility.PingObject(_wizardConfig))
             { text = "Show in Project" };

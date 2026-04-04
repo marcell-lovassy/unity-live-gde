@@ -964,10 +964,19 @@
     margin-bottom: 12px;
 }
 
-.welcome-wizard-config-bar-label {
-    font-size: 11px;
+.welcome-wizard-config-bar-name {
+    font-size: 12px;
+    -unity-font-style: bold;
     color: #7ec8a0;
-    flex-grow: 1;
+}
+
+.welcome-wizard-config-bar-path {
+    font-size: 10px;
+    color: #4a8a6a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-overflow-clip-box: content-box;
 }
 
 .welcome-wizard-ping-btn {
