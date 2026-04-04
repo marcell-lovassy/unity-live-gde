@@ -1,14 +1,15 @@
 using System;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
     /// JSON serializer for any <see cref="IGameDataContainer"/> using
-    /// <c>System.Text.Json</c> (available in Unity 2022.3+ via the .NET 6 runtime).
+    /// <c>Newtonsoft.Json</c> (<c>com.unity.nuget.newtonsoft-json</c>).
+    ///
+    /// Public fields are serialized by default — no custom contract resolver required.
     ///
     /// Output format:
     /// <code>
@@ -26,9 +27,8 @@ namespace LiveGameDataEditor.Editor
     /// </summary>
     public class GameDataJsonSerializer : IGameDataSerializer
     {
-        // Shared option instances (allocate once).
-        private static readonly JsonSerializerOptions _compact = BuildOptions(indented: false);
-        private static readonly JsonSerializerOptions _pretty  = BuildOptions(indented: true);
+        /// <summary>Shared default instance.</summary>
+        public static GameDataJsonSerializer Default { get; } = new GameDataJsonSerializer();
 
         // ── IGameDataSerializer ────────────────────────────────────────────────────
 
@@ -38,23 +38,17 @@ namespace LiveGameDataEditor.Editor
             if (container == null) return "{}";
 
             var entries = container.GetEntries();
-            var opts    = indented ? _pretty : _compact;
-
-            // Serialize each entry to a JsonNode so we can embed it in the wrapper object.
-            var entriesArray = new JsonArray();
+            var entriesArray = new JArray();
             foreach (var entry in entries)
-            {
-                var node = JsonSerializer.SerializeToNode(entry, entry.GetType(), opts);
-                entriesArray.Add(node);
-            }
+                entriesArray.Add(JToken.FromObject(entry));
 
-            var wrapper = new JsonObject
+            var root = new JObject
             {
-                ["entryType"] = JsonValue.Create(container.EntryType.FullName),
+                ["entryType"] = container.EntryType.FullName,
                 ["entries"]   = entriesArray,
             };
 
-            return wrapper.ToJsonString(opts);
+            return root.ToString(indented ? Formatting.Indented : Formatting.None);
         }
 
         /// <inheritdoc/>
@@ -66,17 +60,10 @@ namespace LiveGameDataEditor.Editor
         {
             if (string.IsNullOrWhiteSpace(json) || container == null) return;
 
-            // Check whether this is the old format first (has "Entries", no "entryType").
-            if (IsLegacyFormat(json))
-            {
-                DeserializeLegacy(json, container);
-                return;
-            }
-
-            JsonNode root;
+            JObject root;
             try
             {
-                root = JsonNode.Parse(json);
+                root = JObject.Parse(json);
             }
             catch (JsonException ex)
             {
@@ -84,8 +71,8 @@ namespace LiveGameDataEditor.Editor
                 return;
             }
 
-            // Warn if the stored entry type does not match the target container.
-            string storedType = root?["entryType"]?.GetValue<string>();
+            // Warn (don't block) if the file's entry type doesn't match the target container.
+            string storedType = root["entryType"]?.Value<string>();
             if (!string.IsNullOrEmpty(storedType) && storedType != container.EntryType.FullName)
             {
                 Debug.LogWarning(
@@ -94,23 +81,22 @@ namespace LiveGameDataEditor.Editor
                     "Attempting import anyway — unrecognised fields will be ignored.");
             }
 
-            var entriesNode = root?["entries"] as JsonArray;
+            // Support both the current "entries" key and the legacy "Entries" key.
+            var entriesNode = (root["entries"] ?? root["Entries"]) as JArray;
             if (entriesNode == null)
             {
-                Debug.LogError("[LiveGameDataEditor] JSON does not contain an 'entries' array.");
+                Debug.LogError("[LiveGameDataEditor] JSON does not contain an 'entries' or 'Entries' array.");
                 return;
             }
 
             var targetList = container.GetEntries();
             targetList.Clear();
 
-            foreach (var element in entriesNode)
+            foreach (var token in entriesNode)
             {
-                if (element == null) continue;
                 try
                 {
-                    var entry = (IGameDataEntry)JsonSerializer.Deserialize(
-                        element.ToJsonString(), container.EntryType, _compact);
+                    var entry = (IGameDataEntry)token.ToObject(container.EntryType);
                     if (entry != null)
                         targetList.Add(entry);
                 }
@@ -120,84 +106,6 @@ namespace LiveGameDataEditor.Editor
                 }
             }
         }
-
-        // ── Static convenience accessors ───────────────────────────────────────────
-
-        /// <summary>Shared default instance (singleton pattern for service use).</summary>
-        public static GameDataJsonSerializer Default { get; } = new GameDataJsonSerializer();
-
-        // ── Backward compatibility ─────────────────────────────────────────────────
-
-        /// <summary>
-        /// Detects the legacy <c>{"Entries":[...]}</c> format written by the old
-        /// <c>GameDataJsonWrapper</c>-based export.
-        /// </summary>
-        private static bool IsLegacyFormat(string json)
-        {
-            // Quick heuristic: look for a root "Entries" key without an "entryType" key.
-            return json.Contains("\"Entries\"") && !json.Contains("\"entryType\"");
-        }
-
-        /// <summary>
-        /// Imports entries from the legacy wrapper format. Fields that do not exist on
-        /// <see cref="IGameDataContainer.EntryType"/> are silently ignored.
-        /// </summary>
-        private static void DeserializeLegacy(string json, IGameDataContainer container)
-        {
-            JsonNode root;
-            try
-            {
-                root = JsonNode.Parse(json);
-            }
-            catch (JsonException ex)
-            {
-                Debug.LogError($"[LiveGameDataEditor] Legacy JSON parse error: {ex.Message}");
-                return;
-            }
-
-            var entriesNode = root?["Entries"] as JsonArray;
-            if (entriesNode == null)
-            {
-                Debug.LogError("[LiveGameDataEditor] Legacy JSON does not contain an 'Entries' array.");
-                return;
-            }
-
-            var targetList = container.GetEntries();
-            targetList.Clear();
-
-            foreach (var element in entriesNode)
-            {
-                if (element == null) continue;
-                try
-                {
-                    var entry = (IGameDataEntry)JsonSerializer.Deserialize(
-                        element.ToJsonString(), container.EntryType, _compact);
-                    if (entry != null)
-                        targetList.Add(entry);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[LiveGameDataEditor] Failed to deserialize legacy entry: {ex.Message}");
-                }
-            }
-
-            Debug.Log($"[LiveGameDataEditor] Imported {targetList.Count} entries from legacy format.");
-        }
-
-        // ── Options factory ────────────────────────────────────────────────────────
-
-        private static JsonSerializerOptions BuildOptions(bool indented) => new JsonSerializerOptions
-        {
-            // Serialize and deserialize public fields (Unity uses fields, not properties).
-            IncludeFields = true,
-
-            // Accept "id", "Id", "ID" etc. on import — tolerant for hand-edited files.
-            PropertyNameCaseInsensitive = true,
-
-            WriteIndented = indented,
-
-            // Skip null values to keep files clean.
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        };
     }
 }
+
