@@ -18,10 +18,7 @@ namespace LiveGameDataEditor.GoogleSheets
     /// If you use a Service Account, keep the <c>.json</c> key file outside <c>Assets/</c>
     /// and add it to <c>.gitignore</c> so it is never committed to source control.
     /// </summary>
-    [CreateAssetMenu(
-        menuName = "Live Game Data/Google Sheets Config",
-        fileName = "NewGoogleSheetsConfig",
-        order    = 51)]
+    [CreateAssetMenu(menuName = "Live Game Data Editor/Google Sheets Config", fileName = "NewGoogleSheetsConfig", order    = 51)]
     public class GoogleSheetsConfig : ScriptableObject
     {
         // ── Spreadsheet ────────────────────────────────────────────────────────

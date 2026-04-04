@@ -49,7 +49,7 @@ namespace LiveGameDataEditor.Editor
             EditorApplication.update -= UpdateDirtyIndicator;
         }
 
-        [MenuItem("Tools/Game Data Editor", priority = 100)]
+        [MenuItem("Tools/GDE/Open Editor", priority = 100)]
         public static void OpenWindow()
         {
             var window = GetWindow<LiveGameDataEditorWindow>();

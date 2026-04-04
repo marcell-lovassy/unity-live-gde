@@ -38,7 +38,7 @@ namespace LiveGameDataEditor.Editor
 
         // ── Menu item ─────────────────────────────────────────────────────────
 
-        [MenuItem("Tools/Game Data Editor/Welcome", priority = 200)]
+        [MenuItem("Tools/GDE/Welcome", priority = 200)]
         public static void ShowWindow()
         {
             var window = GetWindow<WelcomeWindow>(utility: true, title: "Live Game Data Editor");
@@ -226,17 +226,17 @@ namespace LiveGameDataEditor.Editor
             scroll.Add(Para(
                 "Live Game Data Editor brings a spreadsheet-style workflow to Unity. " +
                 "Edit your ScriptableObject data in a resizable, sortable, filterable table — " +
-                "no custom Inspector code required."));
+                "No custom tools or coding required."));
 
             scroll.Add(Heading("Features"));
 
             var features = new[]
             {
-                ("📋", "Table editor",       "Inline editing with column resize, sort, filter and search"),
-                ("✅", "Validation",         "Duplicate ID detection and custom validators"),
+                ("📋", "Table editor",       "Edit game data like Excel, directly in Unity, sort, filter and search"),
+                ("✅", "Validation",         "Prevent broken data (duplicate IDs, invalid values)"),
                 ("🔄", "Multi-container",    "Switch between data assets with a browser panel"),
                 ("📊", "CSV & JSON",         "Import and export in one click"),
-                ("☁",  "Google Sheets Sync","Push and pull data to a live spreadsheet via OAuth"),
+                ("☁",  "Google Sheets Sync", "Sign in with Google and sync instantly"),
                 ("↕",  "Drag to reorder",   "Reorder rows with a handle — undo supported"),
             };
 
@@ -248,7 +248,7 @@ namespace LiveGameDataEditor.Editor
             var openBtn = new Button(() =>
             {
                 Close();
-                EditorApplication.ExecuteMenuItem("Tools/Game Data Editor");
+                EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
             })
             { text = "Open Game Data Editor  →" };
             openBtn.AddToClassList("welcome-cta-btn");
@@ -273,7 +273,7 @@ namespace LiveGameDataEditor.Editor
                 "(or any container type you've defined)"));
 
             scroll.Add(Step(2, "Open the editor",
-                "Tools → Game Data Editor\n" +
+                "Tools → GDE → Open Editor \n" +
                 "The editor opens as a dockable window."));
 
             scroll.Add(Step(3, "Load your container",
