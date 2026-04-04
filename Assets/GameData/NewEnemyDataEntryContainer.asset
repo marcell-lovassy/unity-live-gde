@@ -12,4 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 899a176a84d3b3846a25cdc00b54e806, type: 3}
   m_Name: NewEnemyDataEntryContainer
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.EnemyDataContainer
-  Entries: []
+  Entries:
+  - Id: Skeleton
+    Health: 100
+    Damage: 10
+    Enabled: 1
