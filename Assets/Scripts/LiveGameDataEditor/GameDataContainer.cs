@@ -1,18 +1,19 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace LiveGameDataEditor
 {
     /// <summary>
-    /// ScriptableObject that holds a list of GameDataEntry items.
+    /// Concrete ScriptableObject container for <see cref="GameDataEntry"/> items.
     /// Create via: Assets > Create > Live Game Data Editor > Game Data Container
+    ///
+    /// The <c>Entries</c> list and <see cref="IGameDataContainer"/> implementation are
+    /// provided by <see cref="GameDataContainerBase{T}"/>.
     /// </summary>
     [CreateAssetMenu(
         fileName = "NewGameData",
         menuName = "Live Game Data Editor/Game Data Container",
         order = 0)]
-    public class GameDataContainer : ScriptableObject
+    public class GameDataContainer : GameDataContainerBase<GameDataEntry>
     {
-        public List<GameDataEntry> Entries = new List<GameDataEntry>();
     }
 }

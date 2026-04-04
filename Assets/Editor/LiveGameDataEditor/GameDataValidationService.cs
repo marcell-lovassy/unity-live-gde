@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 
 namespace LiveGameDataEditor.Editor
 {
@@ -19,11 +20,21 @@ namespace LiveGameDataEditor.Editor
         };
 
         /// <summary>
+        /// Runs all <see cref="Validators"/> against the entries from <paramref name="container"/>
+        /// and returns a dictionary keyed by row index. Rows with no issues are absent.
+        /// </summary>
+        public static Dictionary<int, List<ValidationResult>> RunAll(IGameDataContainer container)
+        {
+            var entries = container.GetEntries().Cast<IGameDataEntry>().ToList();
+            return RunAll(entries);
+        }
+
+        /// <summary>
         /// Runs all <see cref="Validators"/> against <paramref name="entries"/> and returns
         /// a dictionary keyed by row index. Rows with no issues are absent from the result.
         /// </summary>
         public static Dictionary<int, List<ValidationResult>> RunAll(
-            IReadOnlyList<GameDataEntry> entries)
+            IReadOnlyList<IGameDataEntry> entries)
         {
             var results = new Dictionary<int, List<ValidationResult>>();
 

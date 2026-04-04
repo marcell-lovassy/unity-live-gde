@@ -151,7 +151,6 @@ namespace LiveGameDataEditor.Editor
                 onEntryChanged:  OnEntryChanged,
                 onAddEntry:      OnAddEntry,
                 onRemoveEntries: OnRemoveEntries);
-
             _tableView.OnSelectionChanged += HandleSelectionChanged;
 
             _bulkEditPanel = new GameDataBulkEditPanel();
@@ -183,7 +182,7 @@ namespace LiveGameDataEditor.Editor
         private void RunValidation()
         {
             if (_container == null) return;
-            var results = GameDataValidationService.RunAll(_container.Entries);
+            var results = GameDataValidationService.RunAll(_container);
             _tableView.ApplyValidation(results);
         }
 
@@ -210,9 +209,9 @@ namespace LiveGameDataEditor.Editor
 
         // ── Table callbacks ────────────────────────────────────────────────────────
 
-        private void OnEntryChanged(int index, GameDataEntry updated)
+        private void OnEntryChanged(int index, IGameDataEntry updated)
         {
-            GameDataService.UpdateEntry(_container, index, updated);
+            GameDataService.UpdateEntry(_container, index, (GameDataEntry)updated);
             RunValidation();
         }
 

@@ -1,18 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Renders a single <see cref="GameDataEntry"/> as an inline-editable table row.
-    /// Field widgets are built dynamically from <see cref="GameDataColumnDefinition"/> so the
-    /// row adapts automatically when the data model changes.
+    /// Renders a single <see cref="IGameDataEntry"/> as an inline-editable table row.
+    /// Field widgets are built dynamically from <see cref="GameDataColumnDefinition"/>
+    /// so the row adapts automatically when the data model changes.
     ///
     /// The row never mutates the original entry directly.
-    /// It fires <see cref="OnEntryChanged"/> with a freshly constructed entry so the
-    /// caller can call Undo.RecordObject before committing the change.
+    /// It fires <see cref="OnEntryChanged"/> with a new entry instance so the
+    /// caller can call Undo.RecordObject before committing.
     /// </summary>
     public class GameDataRowView : VisualElement
     {
@@ -20,25 +21,27 @@ namespace LiveGameDataEditor.Editor
         /// Raised when any field is edited. Argument is a new entry with updated values.
         /// Caller must call Undo.RecordObject before assigning it to the container.
         /// </summary>
-        public event Action<GameDataEntry> OnEntryChanged;
+        public event Action<IGameDataEntry> OnEntryChanged;
 
         /// <summary>
         /// Raised when the row is clicked. Bool = whether Ctrl/Shift/Cmd was held (multi-select).
         /// </summary>
         public event Action<bool> OnSelectionToggled;
 
-        // Local field values keyed by field name — never references the original entry.
+        // Local field values keyed by field name.
         private readonly Dictionary<string, object> _fieldValues = new();
         private readonly IReadOnlyList<GameDataColumnDefinition> _columns;
+        private readonly Type _entryType;
 
         public GameDataRowView(
-            GameDataEntry entry,
+            IGameDataEntry entry,
             IReadOnlyList<GameDataColumnDefinition> columns,
             bool isAlternateRow)
         {
-            _columns = columns;
+            _columns   = columns;
+            _entryType = entry.GetType();
 
-            // Snapshot initial values from the entry
+            // Snapshot initial values from the entry via reflection
             foreach (var col in _columns)
                 _fieldValues[col.Field.Name] = col.Field.GetValue(entry);
 
@@ -77,7 +80,6 @@ namespace LiveGameDataEditor.Editor
 
         private void BuildFields()
         {
-            // Narrow gutter for alignment with the header
             var gutter = new VisualElement();
             gutter.AddToClassList("col-gutter");
             Add(gutter);
@@ -91,7 +93,6 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
-        /// <summary>Creates the appropriate input widget for the column's field type.</summary>
         private VisualElement CreateField(GameDataColumnDefinition col)
         {
             string name = col.Field.Name;
@@ -106,7 +107,6 @@ namespace LiveGameDataEditor.Editor
                 });
                 return tf;
             }
-
             if (col.IsInt)
             {
                 var intf = new IntegerField { value = (int)_fieldValues[name] };
@@ -117,7 +117,6 @@ namespace LiveGameDataEditor.Editor
                 });
                 return intf;
             }
-
             if (col.IsFloat)
             {
                 var ff = new FloatField { value = (float)_fieldValues[name] };
@@ -128,7 +127,6 @@ namespace LiveGameDataEditor.Editor
                 });
                 return ff;
             }
-
             if (col.IsBool)
             {
                 var toggle = new Toggle { value = (bool)_fieldValues[name] };
@@ -140,16 +138,11 @@ namespace LiveGameDataEditor.Editor
                 return toggle;
             }
 
-            // Fallback for unsupported types: read-only label
             var label = new Label(_fieldValues[name]?.ToString() ?? "");
             label.AddToClassList("col-readonly");
             return label;
         }
 
-        /// <summary>
-        /// Applies flex sizing from the column definition as inline styles.
-        /// USS classes can still override these values if desired.
-        /// </summary>
         private static void ApplySizing(VisualElement el, GameDataColumnDefinition col)
         {
             el.style.minWidth = col.MinWidth;
@@ -167,11 +160,13 @@ namespace LiveGameDataEditor.Editor
         }
 
         /// <summary>
-        /// Constructs a new <see cref="GameDataEntry"/> from the row's current local field values.
+        /// Constructs a new entry of the original entry type from the row's current
+        /// local field values. Uses Activator.CreateInstance so the concrete type
+        /// is preserved (not hardcoded to GameDataEntry).
         /// </summary>
-        private GameDataEntry MakeEntry()
+        private IGameDataEntry MakeEntry()
         {
-            var entry = new GameDataEntry();
+            var entry = (IGameDataEntry)Activator.CreateInstance(_entryType);
             foreach (var col in _columns)
             {
                 if (_fieldValues.TryGetValue(col.Field.Name, out object val))

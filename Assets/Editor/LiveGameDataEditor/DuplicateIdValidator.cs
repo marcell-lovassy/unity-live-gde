@@ -3,10 +3,10 @@ using System.Collections.Generic;
 
 namespace LiveGameDataEditor.Editor
 {
-    /// <summary>Flags entries whose <see cref="GameDataEntry.Id"/> appears more than once.</summary>
+    /// <summary>Flags entries whose <see cref="IGameDataEntry.Id"/> appears more than once.</summary>
     public class DuplicateIdValidator : IGameDataValidator
     {
-        public IEnumerable<ValidationResult> Validate(IReadOnlyList<GameDataEntry> entries)
+        public IEnumerable<ValidationResult> Validate(IReadOnlyList<IGameDataEntry> entries)
         {
             var idCount = new Dictionary<string, int>(entries.Count, StringComparer.Ordinal);
 
@@ -22,7 +22,7 @@ namespace LiveGameDataEditor.Editor
                 string id = entries[i].Id ?? string.Empty;
                 if (idCount.TryGetValue(id, out int count) && count > 1)
                     yield return new ValidationResult(
-                        i, nameof(GameDataEntry.Id),
+                        i, nameof(IGameDataEntry.Id),
                         $"Duplicate Id \"{id}\"",
                         ValidationSeverity.Error);
             }

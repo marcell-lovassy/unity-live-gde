@@ -12,4 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae841eea757f42542a2109d7969c2ad1, type: 3}
   m_Name: NewGameData
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.GameDataContainer
-  Entries: []
+  Entries:
+  - Id: new_entry
+    Value: 0
+    Multiplier: 1
+    Enabled: 1

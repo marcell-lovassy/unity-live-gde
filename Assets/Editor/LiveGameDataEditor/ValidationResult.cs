@@ -47,6 +47,6 @@ namespace LiveGameDataEditor.Editor
     /// </summary>
     public interface IGameDataValidator
     {
-        IEnumerable<ValidationResult> Validate(IReadOnlyList<GameDataEntry> entries);
+        IEnumerable<ValidationResult> Validate(IReadOnlyList<IGameDataEntry> entries);
     }
 }

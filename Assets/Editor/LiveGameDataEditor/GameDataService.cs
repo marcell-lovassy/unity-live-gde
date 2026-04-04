@@ -168,10 +168,11 @@ namespace LiveGameDataEditor.Editor
         // ── Future validation hook ─────────────────────────────────────────────────
 
         /// <summary>
-        /// Stub: validate a single entry. Pass an IDataValidator implementation
-        /// when the validation system is added; currently a no-op.
+        /// Stub: validate a single entry. Pass an <see cref="IDataValidator"/> implementation
+        /// when per-entry runtime validation is needed; currently a no-op.
+        /// For collection-level / cross-entry validation, use <see cref="GameDataValidationService"/>.
         /// </summary>
-        public static bool OnValidateEntry(GameDataEntry entry, IDataValidator validator = null)
+        public static bool OnValidateEntry(IGameDataEntry entry, IDataValidator validator = null)
         {
             if (validator == null) return true;
             return validator.Validate(entry, out _);

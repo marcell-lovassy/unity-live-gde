@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Renders a scrollable table of <see cref="GameDataEntry"/> rows.
+    /// Renders a scrollable table of <see cref="IGameDataEntry"/> rows for any
+    /// <see cref="IGameDataContainer"/>. Column definitions are derived from the
+    /// container's entry type via <see cref="GameDataColumnDefinition.FromType"/>.
     ///
     /// Responsibilities:
-    ///   - Dynamic column headers (driven by <see cref="GameDataColumnDefinition"/>)
+    ///   - Dynamic column headers (reflection-based)
     ///   - Inline row editing
     ///   - Search / filter (show/hide rows without rebuild)
     ///   - Column sorting (click header to toggle ascending/descending)
@@ -18,17 +21,20 @@ namespace LiveGameDataEditor.Editor
     public class GameDataTableView : VisualElement
     {
         // ── Callbacks wired by the EditorWindow ────────────────────────────────────
-        private readonly Action<int, GameDataEntry> _onEntryChanged;  // (dataIndex, newEntry)
-        private readonly Action _onAddEntry;
-        private readonly Action<List<int>> _onRemoveEntries;          // (dataIndices)
 
-        /// <summary>Fired whenever the selection changes. Argument = current selected data indices.</summary>
+        /// <summary>Called when a row field is edited. Args: (rowIndex, newEntryInstance).</summary>
+        private readonly Action<int, IGameDataEntry> _onEntryChanged;
+        private readonly Action _onAddEntry;
+        private readonly Action<List<int>> _onRemoveEntries;
+
+        /// <summary>Fired whenever the selection changes. Argument = selected data indices.</summary>
         public event Action<List<int>> OnSelectionChanged;
 
         // ── State ──────────────────────────────────────────────────────────────────
-        private GameDataContainer _container;
-        private readonly List<GameDataColumnDefinition> _columns;
+        private IGameDataContainer _container;
+        private List<GameDataColumnDefinition> _columns = new();
         private ScrollView _scrollView;
+        private VisualElement _headerRow;
         private readonly List<GameDataRowView> _rows = new();
         private readonly List<int> _selectedIndices = new();
 
@@ -42,39 +48,53 @@ namespace LiveGameDataEditor.Editor
         private readonly Dictionary<string, Label> _sortIndicators = new();
 
         public GameDataTableView(
-            Action<int, GameDataEntry> onEntryChanged,
+            Action<int, IGameDataEntry> onEntryChanged,
             Action onAddEntry,
             Action<List<int>> onRemoveEntries)
         {
             _onEntryChanged  = onEntryChanged;
             _onAddEntry      = onAddEntry;
             _onRemoveEntries = onRemoveEntries;
-            _columns         = GameDataColumnDefinition.FromType<GameDataEntry>();
 
             AddToClassList("table-view");
             style.flexGrow = 1;
+            style.flexDirection = FlexDirection.Column;
 
-            BuildHeader();
+            // Placeholder header — rebuilt in Populate() once we know the entry type
+            _headerRow = new VisualElement();
+            _headerRow.AddToClassList("table-header");
+            Add(_headerRow);
+
             BuildScrollView();
             BuildFooter();
         }
 
         // ── Public API ─────────────────────────────────────────────────────────────
 
-        /// <summary>Full rebuild of all row VisualElements from the container. Clears selection.</summary>
-        public void Populate(GameDataContainer container)
+        /// <summary>
+        /// Full rebuild of column headers and row VisualElements from <paramref name="container"/>.
+        /// Clears selection. Header is rebuilt when container type changes.
+        /// </summary>
+        public void Populate(IGameDataContainer container)
         {
             _container = container;
             _selectedIndices.Clear();
             _rows.Clear();
             _scrollView.Clear();
+            _sortIndicators.Clear();
 
             if (container == null) return;
 
-            for (int i = 0; i < container.Entries.Count; i++)
+            // Rebuild columns from the container's entry type
+            _columns = GameDataColumnDefinition.FromType(container.EntryType);
+            RebuildHeader();
+
+            var entries = container.GetEntries();
+            for (int i = 0; i < entries.Count; i++)
             {
                 int capturedIndex = i;
-                var row = new GameDataRowView(container.Entries[i], _columns, i % 2 == 1);
+                var entry = (IGameDataEntry)entries[capturedIndex];
+                var row = new GameDataRowView(entry, _columns, i % 2 == 1);
 
                 row.OnEntryChanged    += (updated) => _onEntryChanged?.Invoke(capturedIndex, updated);
                 row.OnSelectionToggled += (isMulti) => HandleRowSelection(capturedIndex, isMulti);
@@ -86,7 +106,7 @@ namespace LiveGameDataEditor.Editor
         }
 
         /// <summary>
-        /// Updates filter criteria and refreshes the display.
+        /// Updates filter criteria and refreshes the visible row order.
         /// Row VisualElements are reused — not rebuilt.
         /// </summary>
         public void SetFilter(string searchText, bool enabledOnly)
@@ -96,9 +116,7 @@ namespace LiveGameDataEditor.Editor
             ApplyFilterAndSort();
         }
 
-        /// <summary>
-        /// Applies per-row validation results. Rows absent from the dictionary are cleared.
-        /// </summary>
+        /// <summary>Applies per-row validation results. Rows absent from the dict are cleared.</summary>
         public void ApplyValidation(Dictionary<int, List<ValidationResult>> results)
         {
             for (int i = 0; i < _rows.Count; i++)
@@ -110,15 +128,13 @@ namespace LiveGameDataEditor.Editor
 
         // ── Header ─────────────────────────────────────────────────────────────────
 
-        private void BuildHeader()
+        private void RebuildHeader()
         {
-            var header = new VisualElement();
-            header.AddToClassList("table-header");
+            _headerRow.Clear();
 
-            // Gutter placeholder aligns with row gutters
             var gutter = new VisualElement();
             gutter.AddToClassList("col-gutter");
-            header.Add(gutter);
+            _headerRow.Add(gutter);
 
             foreach (var col in _columns)
             {
@@ -137,13 +153,11 @@ namespace LiveGameDataEditor.Editor
                 cell.Add(label);
                 cell.Add(indicator);
 
-                string fieldName = col.Field.Name; // capture for closure
+                string fieldName = col.Field.Name;
                 cell.RegisterCallback<ClickEvent>(_ => OnHeaderClicked(fieldName));
 
-                header.Add(cell);
+                _headerRow.Add(cell);
             }
-
-            Add(header);
         }
 
         // ── ScrollView ─────────────────────────────────────────────────────────────
@@ -177,37 +191,46 @@ namespace LiveGameDataEditor.Editor
 
         // ── Filter / Sort ──────────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Builds a filtered + sorted index list and repopulates the ScrollView
-        /// by reordering/showing/hiding existing row VisualElements (no rebuild).
-        /// </summary>
         private void ApplyFilterAndSort()
         {
             if (_container == null) return;
 
+            var entries = _container.GetEntries();
+
+            // Cached reflection for optional fields used in filter (e.g. "Enabled")
+            FieldInfo enabledField = _container.EntryType.GetField("Enabled");
+
             // Step 1: filter
-            var visible = new List<int>(_rows.Count);
-            for (int i = 0; i < _container.Entries.Count; i++)
+            var visible = new List<int>(entries.Count);
+            for (int i = 0; i < entries.Count; i++)
             {
-                var entry = _container.Entries[i];
-                if (_enabledOnly && !entry.Enabled) continue;
+                var entry = (IGameDataEntry)entries[i];
+
+                // Enabled-only filter (uses reflection; skipped for types without an Enabled field)
+                if (_enabledOnly && enabledField != null)
+                {
+                    var enabledVal = enabledField.GetValue(entry);
+                    if (enabledVal is bool b && !b) continue;
+                }
+
                 if (!string.IsNullOrEmpty(_searchText) &&
                     (entry.Id == null ||
                      entry.Id.IndexOf(_searchText, StringComparison.OrdinalIgnoreCase) < 0))
                     continue;
+
                 visible.Add(i);
             }
 
             // Step 2: sort
             if (!string.IsNullOrEmpty(_sortField))
             {
-                var fieldInfo = typeof(GameDataEntry).GetField(_sortField);
+                var fieldInfo = _container.EntryType.GetField(_sortField);
                 if (fieldInfo != null)
                 {
                     visible.Sort((a, b) =>
                     {
-                        var va = fieldInfo.GetValue(_container.Entries[a]) as IComparable;
-                        var vb = fieldInfo.GetValue(_container.Entries[b]) as IComparable;
+                        var va = fieldInfo.GetValue(entries[a]) as IComparable;
+                        var vb = fieldInfo.GetValue(entries[b]) as IComparable;
                         int cmp = va?.CompareTo(vb) ?? 0;
                         return _sortAsc ? cmp : -cmp;
                     });
