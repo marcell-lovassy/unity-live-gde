@@ -472,4 +472,136 @@
     white-space: normal;
 }
 
+/* ── Google Sheets Sync Panel ─────────────────────────────── */
+.sheets-panel {
+    flex-direction: column;
+    background-color: #1e2a3a;
+    border-bottom-width: 1px;
+    border-bottom-color: #0d1520;
+    padding: 6px 10px;
+    flex-shrink: 0;
+}
+
+.sheets-panel-header {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.sheets-panel-title {
+    -unity-font-style: bold;
+    font-size: 11px;
+    color: #7ec8e3;
+}
+
+.sheets-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.sheets-row-label {
+    font-size: 11px;
+    color: #8a9ab0;
+    width: 44px;
+    flex-shrink: 0;
+    -unity-text-align: middle-left;
+}
+
+.sheets-config-field {
+    flex-grow: 1;
+    min-width: 160px;
+    max-width: 320px;
+}
+
+.sheets-new-btn {
+    min-width: 48px;
+    margin-left: 4px;
+    font-size: 11px;
+}
+
+/* Auth mode badge */
+.sheets-auth-badge {
+    font-size: 10px;
+    -unity-font-style: bold;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+
+.sheets-badge--apikey {
+    background-color: #2d4a2d;
+    color: #8ecb8e;
+    border-width: 1px;
+    border-color: #3e6a3e;
+}
+
+.sheets-badge--sa {
+    background-color: #2a3a60;
+    color: #8ab0e8;
+    border-width: 1px;
+    border-color: #3a5090;
+}
+
+/* Push / Pull buttons */
+.sheets-action-btn {
+    min-width: 130px;
+    height: 24px;
+    font-size: 11px;
+    margin-right: 6px;
+}
+
+.sheets-push-btn {
+    background-color: #2d4060;
+    border-color: #3d5080;
+    color: #a8c8f0;
+}
+
+.sheets-push-btn:hover {
+    background-color: #3d5070;
+}
+
+.sheets-pull-btn {
+    background-color: #2d4a2d;
+    border-color: #3e6a3e;
+    color: #8ecb8e;
+}
+
+.sheets-pull-btn:hover {
+    background-color: #3d5a3d;
+}
+
+.sheets-last-sync {
+    font-size: 10px;
+    color: #5a7090;
+    margin-left: 4px;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Status row */
+.sheets-status-row {
+    flex-direction: row;
+    align-items: center;
+    margin-top: 2px;
+}
+
+.sheets-status-label {
+    font-size: 10px;
+    white-space: normal;
+}
+
+.sheets-status--ok {
+    color: #8ecb8e;
+}
+
+.sheets-status--error {
+    color: #e08080;
+}
+
+/* end of stylesheet */
+
 /* end of stylesheet */

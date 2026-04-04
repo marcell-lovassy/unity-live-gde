@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using LiveGameDataEditor.GoogleSheets;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,26 +13,29 @@ namespace LiveGameDataEditor.Editor
     ///
     /// Layout:
     ///   SelectionBar
-    ///   Toolbar (search / filter / Browse toggle / JSON / CSV)
+    ///   Toolbar (search / filter / Browse toggle / Sheets toggle / JSON / CSV)
+    ///   GoogleSheetsSyncPanel (hidden by default, shown when Sheets toggle is on)
     ///   MainArea [horizontal]
     ///     BrowserPanel (220 px, toggleable) | MainContent (EmptyState or ContentArea)
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
-        private IGameDataContainer    _container;
-        private GameDataSelectionBar  _selectionBar;
-        private GameDataTableView     _tableView;
-        private GameDataBrowserPanel  _browserPanel;
-        private VisualElement         _emptyState;
-        private VisualElement         _contentArea;
-        private VisualElement         _mainArea;
-        private VisualElement         _mainContent;
-        private VisualElement         _browserResizeHandle;
+        private IGameDataContainer       _container;
+        private GameDataSelectionBar     _selectionBar;
+        private GameDataTableView        _tableView;
+        private GameDataBrowserPanel     _browserPanel;
+        private GoogleSheetsSyncPanel    _sheetsPanel;
+        private VisualElement            _emptyState;
+        private VisualElement            _contentArea;
+        private VisualElement            _mainArea;
+        private VisualElement            _mainContent;
+        private VisualElement            _browserResizeHandle;
 
         // Toolbar filter state
         private string _searchText  = string.Empty;
         private bool   _enabledOnly = false;
         private bool   _browserOpen = false;
+        private bool   _sheetsOpen  = false;
 
         private void OnEnable()
         {
@@ -67,6 +71,7 @@ namespace LiveGameDataEditor.Editor
 
             BuildSelectionBar();
             BuildToolbar();
+            BuildSheetsPanel();
             BuildMainArea();
             RefreshView();
         }
@@ -146,7 +151,36 @@ namespace LiveGameDataEditor.Editor
             toolbar.Add(importJsonBtn);
             toolbar.Add(exportCsvBtn);
             toolbar.Add(importCsvBtn);
+
+            // Google Sheets sync toggle — rightmost
+            var sheetsBtn = new Button(ToggleSheets) { text = "☁ Sheets" };
+            sheetsBtn.AddToClassList("toolbar-button");
+            toolbar.Add(sheetsBtn);
+
             rootVisualElement.Add(toolbar);
+        }
+
+        // ── Google Sheets sync panel ───────────────────────────────────────────────
+
+        private void BuildSheetsPanel()
+        {
+            _sheetsPanel = new GoogleSheetsSyncPanel();
+            _sheetsPanel.OnPullComplete += () =>
+            {
+                RefreshView();
+            };
+            _sheetsPanel.style.display = _sheetsOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            rootVisualElement.Add(_sheetsPanel);
+        }
+
+        private void ToggleSheets()
+        {
+            _sheetsOpen = !_sheetsOpen;
+            _sheetsPanel.style.display = _sheetsOpen ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_sheetsOpen)
+            {
+                _sheetsPanel.SetContainer(_container);
+            }
         }
 
         // ── Main horizontal area (browser | content) ───────────────────────────────
@@ -292,6 +326,10 @@ namespace LiveGameDataEditor.Editor
             if (!has)
             {
                 _selectionBar.UpdateInfo(null);
+                if (_sheetsPanel != null)
+                {
+                    _sheetsPanel.SetContainer(null);
+                }
                 return;
             }
 
@@ -302,6 +340,13 @@ namespace LiveGameDataEditor.Editor
             RunValidation();
 
             _selectionBar.UpdateInfo(_container);
+
+            // Keep the sheets panel in sync with the current container even when it's hidden,
+            // so it's ready to use as soon as the designer opens it.
+            if (_sheetsPanel != null)
+            {
+                _sheetsPanel.SetContainer(_container);
+            }
         }
 
         private void RunValidation()
