@@ -90,58 +90,14 @@ namespace LiveGameDataEditor.Editor
 
         /// <summary>Exports all entries to a user-chosen JSON file.</summary>
         public static void ExportToJson(GameDataContainer container)
-        {
-            if (container == null) return;
-
-            string path = EditorUtility.SaveFilePanel(
-                "Export Game Data to JSON",
-                Application.dataPath,
-                container.name + ".json",
-                "json");
-
-            if (string.IsNullOrEmpty(path)) return;
-
-            var wrapper = new GameDataJsonWrapper { Entries = container.Entries };
-            string json = JsonUtility.ToJson(wrapper, prettyPrint: true);
-            File.WriteAllText(path, json);
-
-            Debug.Log($"[LiveGameDataEditor] Exported {container.Entries.Count} entries to: {path}");
-        }
+            => ExportToJson((IGameDataContainer)container);
 
         /// <summary>
         /// Imports entries from a user-chosen JSON file, overwriting current data.
         /// The replacement is wrapped in a single Undo operation.
         /// </summary>
         public static void ImportFromJson(GameDataContainer container)
-        {
-            if (container == null) return;
-
-            string path = EditorUtility.OpenFilePanel(
-                "Import Game Data from JSON",
-                Application.dataPath,
-                "json");
-
-            if (string.IsNullOrEmpty(path)) return;
-
-            string json = File.ReadAllText(path);
-            var wrapper = JsonUtility.FromJson<GameDataJsonWrapper>(json);
-
-            if (wrapper == null)
-            {
-                EditorUtility.DisplayDialog(
-                    "Import Failed",
-                    "Could not parse the selected JSON file. Make sure it was exported from this tool.",
-                    "OK");
-                return;
-            }
-
-            Undo.RecordObject(container, "Import Game Data from JSON");
-            container.Entries = wrapper.Entries ?? new List<GameDataEntry>();
-            MarkDirty(container);
-
-            OnDataImported?.Invoke(container);
-            Debug.Log($"[LiveGameDataEditor] Imported {container.Entries.Count} entries from: {path}");
-        }
+            => ImportFromJson((IGameDataContainer)container);
 
         // ── Bulk mutations ─────────────────────────────────────────────────────────
 
@@ -265,33 +221,54 @@ namespace LiveGameDataEditor.Editor
         }
 
         /// <summary>
-        /// Exports data to JSON. Currently only supports <see cref="GameDataContainer"/>;
-        /// shows an informational dialog for custom container types.
+        /// Exports data to a user-chosen JSON file. Works for any <see cref="IGameDataContainer"/>.
         /// </summary>
         public static void ExportToJson(IGameDataContainer container)
         {
-            if (container is GameDataContainer gc) { ExportToJson(gc); return; }
             if (container == null) return;
-            EditorUtility.DisplayDialog(
-                "Export Not Supported",
-                "JSON export is only supported for the built-in GameDataContainer type.\n\n" +
-                "Implement a custom export method for your container type.",
-                "OK");
+
+            var so = container as ScriptableObject;
+            string defaultName = so != null ? so.name : container.EntryType.Name;
+            string path = EditorUtility.SaveFilePanel(
+                "Export Game Data to JSON",
+                Application.dataPath,
+                defaultName + ".json",
+                "json");
+
+            if (string.IsNullOrEmpty(path)) return;
+
+            string json = GameDataJsonSerializer.Default.Serialize(container, indented: true);
+            File.WriteAllText(path, json);
+
+            Debug.Log($"[LiveGameDataEditor] Exported {container.GetEntries().Count} entries to: {path}");
         }
 
         /// <summary>
-        /// Imports JSON data. Currently only supports <see cref="GameDataContainer"/>;
-        /// shows an informational dialog for custom container types.
+        /// Imports entries from a user-chosen JSON file, overwriting current data.
+        /// Works for any <see cref="IGameDataContainer"/>. Wrapped in a single Undo operation.
         /// </summary>
         public static void ImportFromJson(IGameDataContainer container)
         {
-            if (container is GameDataContainer gc) { ImportFromJson(gc); return; }
-            if (container == null) return;
-            EditorUtility.DisplayDialog(
-                "Import Not Supported",
-                "JSON import is only supported for the built-in GameDataContainer type.\n\n" +
-                "Implement a custom import method for your container type.",
-                "OK");
+            var so = GetScriptableObject(container);
+            if (so == null) return;
+
+            string path = EditorUtility.OpenFilePanel(
+                "Import Game Data from JSON",
+                Application.dataPath,
+                "json");
+
+            if (string.IsNullOrEmpty(path)) return;
+
+            string json = File.ReadAllText(path);
+
+            Undo.RecordObject(so, "Import Game Data from JSON");
+            GameDataJsonSerializer.Default.Deserialize(json, container);
+            EditorUtility.SetDirty(so);
+
+            if (container is GameDataContainer gc)
+                OnDataImported?.Invoke(gc);
+
+            Debug.Log($"[LiveGameDataEditor] Imported {container.GetEntries().Count} entries from: {path}");
         }
 
         // Returns the container cast to ScriptableObject, logging a warning if the cast fails.
@@ -302,15 +279,6 @@ namespace LiveGameDataEditor.Editor
             if (so == null)
                 Debug.LogWarning("[LiveGameDataEditor] Container does not inherit ScriptableObject; changes will not be saved.");
             return so;
-        }
-
-        // ── Private helpers ────────────────────────────────────────────────────────
-
-        /// <summary>Wrapper used by JsonUtility to serialize/deserialize the list.</summary>
-        [Serializable]
-        private class GameDataJsonWrapper
-        {
-            public List<GameDataEntry> Entries;
         }
     }
 }
