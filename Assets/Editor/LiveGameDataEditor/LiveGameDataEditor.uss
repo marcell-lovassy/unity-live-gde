@@ -553,6 +553,58 @@
     border-color: #3a5090;
 }
 
+.sheets-badge--oauth {
+    background-color: #4a2060;
+    color: #c890e8;
+    border-width: 1px;
+    border-color: #7040a0;
+}
+
+/* OAuth sign-in / sign-out row */
+.sheets-oauth-row {
+    align-items: center;
+    padding: 2px 0;
+    margin-bottom: 2px;
+}
+
+.sheets-oauth-status {
+    font-size: 10px;
+    flex-grow: 1;
+    -unity-text-align: middle-left;
+}
+
+.sheets-oauth--ok {
+    color: #8ecb8e;
+}
+
+.sheets-oauth--warn {
+    color: #e0c060;
+}
+
+.sheets-sign-in-btn {
+    font-size: 11px;
+    min-width: 160px;
+    height: 24px;
+    background-color: #4a2060;
+    border-color: #7040a0;
+    color: #c890e8;
+    margin-left: 4px;
+}
+
+.sheets-sign-in-btn:hover {
+    background-color: #5a3070;
+}
+
+.sheets-sign-out-btn {
+    font-size: 10px;
+    min-width: 60px;
+    height: 22px;
+    background-color: #3a2020;
+    border-color: #6a3030;
+    color: #c08080;
+    margin-left: 4px;
+}
+
 /* Push / Pull buttons */
 .sheets-action-btn {
     min-width: 130px;

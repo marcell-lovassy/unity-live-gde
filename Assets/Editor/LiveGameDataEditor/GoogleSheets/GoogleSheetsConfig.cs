@@ -37,14 +37,30 @@ namespace LiveGameDataEditor.GoogleSheets
 
         // ── Authentication ─────────────────────────────────────────────────────
 
-        [Tooltip("API Key: read-only access; the sheet must be shared as 'Anyone with the link can view'.\n" +
-                 "Service Account: read + write access to private sheets. " +
-                 "Share the sheet with the service account e-mail address.")]
-        public GoogleSheetsAuthMode AuthMode = GoogleSheetsAuthMode.ApiKey;
+        [Tooltip("API Key: read-only access (Pull only); the sheet must be public.\n" +
+                 "OAuth: read + write access via 'Sign in with Google' — recommended for designers.\n" +
+                 "Service Account: read + write via a JSON key file — suitable for CI/CD.")]
+        public GoogleSheetsAuthMode AuthMode = GoogleSheetsAuthMode.OAuth;
+
+        // ── API Key ────────────────────────────────────────────────────────────
 
         [Tooltip("Google Cloud API Key. Only used in API Key mode.\n" +
-                 "Create one at console.cloud.google.com → APIs & Services → Credentials.")]
+                 "Create one at console.cloud.google.com → APIs & Services → Credentials.\n" +
+                 "The sheet must be shared as 'Anyone with the link can view'. Push is not available.")]
         public string ApiKey = "";
+
+        // ── OAuth 2.0 ──────────────────────────────────────────────────────────
+
+        [Tooltip("OAuth 2.0 Client ID.\n" +
+                 "In Google Cloud Console: APIs & Services → Credentials → Create → OAuth 2.0 Client ID.\n" +
+                 "Application type: Desktop app.")]
+        public string OAuthClientId = "";
+
+        [Tooltip("OAuth 2.0 Client Secret paired with the Client ID above.\n" +
+                 "Note: for Desktop apps this is not considered truly secret by Google's own documentation.")]
+        public string OAuthClientSecret = "";
+
+        // ── Service Account (legacy / CI-CD) ───────────────────────────────────
 
         [Tooltip("Absolute or project-relative path to the Service Account JSON key file " +
                  "(e.g. '.google/my-project-key.json').\n" +
@@ -70,6 +86,11 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 return false;
             }
+            if (AuthMode == GoogleSheetsAuthMode.OAuth &&
+                (string.IsNullOrWhiteSpace(OAuthClientId) || string.IsNullOrWhiteSpace(OAuthClientSecret)))
+            {
+                return false;
+            }
             if (AuthMode == GoogleSheetsAuthMode.ServiceAccount && string.IsNullOrWhiteSpace(ServiceAccountJsonPath))
             {
                 return false;
@@ -81,6 +102,7 @@ namespace LiveGameDataEditor.GoogleSheets
         public string AuthModeLabel => AuthMode switch
         {
             GoogleSheetsAuthMode.ApiKey         => "API Key",
+            GoogleSheetsAuthMode.OAuth          => "OAuth",
             GoogleSheetsAuthMode.ServiceAccount => "Service Account",
             _                                   => "Unknown"
         };
@@ -88,10 +110,13 @@ namespace LiveGameDataEditor.GoogleSheets
 
     public enum GoogleSheetsAuthMode
     {
-        /// <summary>Read-only access using a Google Cloud API Key. The sheet must be public.</summary>
+        /// <summary>Read-only, Pull only. The sheet must be shared as "Anyone with the link can view".</summary>
         ApiKey,
 
-        /// <summary>Read + write access using a Service Account JSON key file.</summary>
+        /// <summary>Read + Write. Browser-based "Sign in with Google" flow. Recommended for designers.</summary>
+        OAuth,
+
+        /// <summary>Read + Write. Service Account JSON key file. Suitable for CI/CD pipelines.</summary>
         ServiceAccount,
     }
 }

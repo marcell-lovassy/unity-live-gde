@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using LiveGameDataEditor;
 using LiveGameDataEditor.Editor;
@@ -11,10 +12,11 @@ namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
     /// Collapsible panel that sits below the main toolbar in <see cref="LiveGameDataEditorWindow"/>.
-    /// Lets the designer pick a <see cref="GoogleSheetsConfig"/>, then push or pull with one click.
+    /// Lets the designer pick a <see cref="GoogleSheetsConfig"/>, sign in (OAuth), then push or pull
+    /// with one click.
     ///
-    /// The association between a container and a config is stored in EditorPrefs
-    /// keyed by the container asset's GUID so it survives domain reloads.
+    /// The association between a container and a config is stored in EditorPrefs keyed by the
+    /// container asset's GUID so it survives domain reloads.
     /// </summary>
     public sealed class GoogleSheetsSyncPanel : VisualElement
     {
@@ -35,14 +37,17 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private ObjectField   _configField;
         private Label         _authBadge;
-        private Label         _tabInfoLabel;   // read-only label showing the resolved tab name
+        private Label         _tabInfoLabel;
+        private VisualElement _oauthRow;
+        private Label         _oauthStatusLabel;
+        private Button        _signInBtn;
+        private Button        _signOutBtn;
         private Button        _pushBtn;
         private Button        _pullBtn;
         private Label         _statusLabel;
         private VisualElement _statusRow;
         private Label         _lastSyncLabel;
 
-        // EditorPrefs key prefix for config-container association
         private const string PrefKeyPrefix = "LiveGameDataEditor.SheetsConfig.";
 
         // ── Constructor ────────────────────────────────────────────────────────
@@ -61,7 +66,6 @@ namespace LiveGameDataEditor.GoogleSheets
         /// </summary>
         public void SetContainer(IGameDataContainer container)
         {
-            // Unregister auto-push for the old container before switching.
             if (!string.IsNullOrEmpty(_containerGuid))
             {
                 GoogleSheetsAutoSaveMonitor.Unregister(_containerGuid);
@@ -74,7 +78,6 @@ namespace LiveGameDataEditor.GoogleSheets
                 ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(so))
                 : "";
 
-            // Restore the config that was last associated with this container.
             GoogleSheetsConfig restoredConfig = null;
             if (!string.IsNullOrEmpty(_containerGuid))
             {
@@ -105,7 +108,6 @@ namespace LiveGameDataEditor.GoogleSheets
             titleLabel.AddToClassList("sheets-panel-title");
             headerRow.Add(titleLabel);
 
-            // Read-only label showing which tab this container maps to.
             _tabInfoLabel = new Label("");
             _tabInfoLabel.AddToClassList("sheets-tab-info");
             headerRow.Add(_tabInfoLabel);
@@ -137,12 +139,31 @@ namespace LiveGameDataEditor.GoogleSheets
             _authBadge.AddToClassList("sheets-auth-badge");
             configRow.Add(_authBadge);
 
-            // "Create new config" convenience button
             var createConfigBtn = new Button(CreateNewConfig) { text = "New…" };
             createConfigBtn.AddToClassList("sheets-new-btn");
             configRow.Add(createConfigBtn);
 
             Add(configRow);
+
+            // ── OAuth auth-state row (hidden for non-OAuth modes) ──────────────
+            _oauthRow = new VisualElement();
+            _oauthRow.AddToClassList("sheets-row");
+            _oauthRow.AddToClassList("sheets-oauth-row");
+            _oauthRow.style.display = DisplayStyle.None;
+
+            _oauthStatusLabel = new Label("");
+            _oauthStatusLabel.AddToClassList("sheets-oauth-status");
+            _oauthRow.Add(_oauthStatusLabel);
+
+            _signInBtn = new Button(OnSignInClicked) { text = "Sign in with Google ▶" };
+            _signInBtn.AddToClassList("sheets-sign-in-btn");
+            _oauthRow.Add(_signInBtn);
+
+            _signOutBtn = new Button(OnSignOutClicked) { text = "Sign out" };
+            _signOutBtn.AddToClassList("sheets-sign-out-btn");
+            _oauthRow.Add(_signOutBtn);
+
+            Add(_oauthRow);
 
             // ── Action row ─────────────────────────────────────────────────────
             var actionRow = new VisualElement();
@@ -187,7 +208,6 @@ namespace LiveGameDataEditor.GoogleSheets
             _configField.SetValueWithoutNotify(config);
             UpdateAuthBadge();
 
-            // Update auto-push registration whenever the config changes.
             GoogleSheetsAutoSaveMonitor.Register(_containerGuid, _container, _config);
 
             if (saveToPrefs && !string.IsNullOrEmpty(_containerGuid))
@@ -219,7 +239,56 @@ namespace LiveGameDataEditor.GoogleSheets
             Selection.activeObject = newConfig;
         }
 
-        // ── Button actions ─────────────────────────────────────────────────────
+        // ── OAuth sign-in / sign-out ───────────────────────────────────────────
+
+        private async void OnSignInClicked()
+        {
+            if (_config == null || _busy)
+            {
+                return;
+            }
+
+            _busy = true;
+            SetBusy(true);
+            SetStatus("Opening browser for Google sign-in…", success: true);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            try
+            {
+                await GoogleSheetsAuthService.StartOAuthFlowAsync(_config, cts.Token);
+                SetStatus("Signed in successfully.", success: true);
+            }
+            catch (OperationCanceledException)
+            {
+                SetStatus("Sign-in timed out (5 min). Please try again.", success: false);
+            }
+            catch (Exception ex)
+            {
+                SetStatus("Sign-in failed: " + ex.Message, success: false);
+                Debug.LogError("[LiveGameDataEditor] Google OAuth: " + ex.Message);
+            }
+            finally
+            {
+                _busy = false;
+                SetBusy(false);
+                UpdateAuthBadge();
+                RefreshButtons();
+            }
+        }
+
+        private void OnSignOutClicked()
+        {
+            if (_config == null)
+            {
+                return;
+            }
+            GoogleSheetsAuthService.SignOut(_config);
+            UpdateAuthBadge();
+            RefreshButtons();
+            SetStatus("Signed out.", success: true);
+        }
+
+        // ── Push / Pull ────────────────────────────────────────────────────────
 
         private async void OnPushClicked()
         {
@@ -273,15 +342,28 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private void RefreshButtons()
         {
-            bool canSync = _container != null && _config != null && _config.IsConfigured() && !_busy;
-            _pushBtn.SetEnabled(canSync);
+            if (_config == null || _container == null)
+            {
+                _pushBtn.SetEnabled(false);
+                _pullBtn.SetEnabled(false);
+                return;
+            }
+
+            bool isConfigured  = _config.IsConfigured();
+            bool isOAuthReady  = _config.AuthMode != GoogleSheetsAuthMode.OAuth
+                                 || GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
+            bool canSync = isConfigured && isOAuthReady && !_busy;
+
+            // API Key is Pull-only; OAuth and Service Account support Push.
+            _pushBtn.SetEnabled(canSync && _config.AuthMode != GoogleSheetsAuthMode.ApiKey);
             _pullBtn.SetEnabled(canSync);
         }
 
         private void SetBusy(bool busy)
         {
-            _pushBtn.SetEnabled(!busy && _container != null && _config != null && _config.IsConfigured());
-            _pullBtn.SetEnabled(!busy && _container != null && _config != null && _config.IsConfigured());
+            bool canSync = _container != null && _config != null && _config.IsConfigured() && !busy;
+            _pushBtn.SetEnabled(canSync && _config?.AuthMode != GoogleSheetsAuthMode.ApiKey);
+            _pullBtn.SetEnabled(canSync);
         }
 
         private void SetStatus(string message, bool success)
@@ -306,16 +388,44 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 _authBadge.text = "";
                 _authBadge.style.display = DisplayStyle.None;
+                UpdateOAuthRow();
                 return;
             }
 
             _authBadge.style.display = DisplayStyle.Flex;
             _authBadge.text = _config.AuthModeLabel;
             _authBadge.RemoveFromClassList("sheets-badge--apikey");
+            _authBadge.RemoveFromClassList("sheets-badge--oauth");
             _authBadge.RemoveFromClassList("sheets-badge--sa");
-            _authBadge.AddToClassList(_config.AuthMode == GoogleSheetsAuthMode.ApiKey
-                ? "sheets-badge--apikey"
-                : "sheets-badge--sa");
+            _authBadge.AddToClassList(_config.AuthMode switch
+            {
+                GoogleSheetsAuthMode.ApiKey         => "sheets-badge--apikey",
+                GoogleSheetsAuthMode.OAuth          => "sheets-badge--oauth",
+                GoogleSheetsAuthMode.ServiceAccount => "sheets-badge--sa",
+                _                                   => "sheets-badge--apikey"
+            });
+
+            UpdateOAuthRow();
+        }
+
+        private void UpdateOAuthRow()
+        {
+            if (_config == null || _config.AuthMode != GoogleSheetsAuthMode.OAuth)
+            {
+                _oauthRow.style.display = DisplayStyle.None;
+                return;
+            }
+
+            _oauthRow.style.display = DisplayStyle.Flex;
+            bool isAuthed = GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
+
+            _oauthStatusLabel.text = isAuthed ? "✓  Signed in to Google" : "⚠  Not signed in";
+            _oauthStatusLabel.RemoveFromClassList("sheets-oauth--ok");
+            _oauthStatusLabel.RemoveFromClassList("sheets-oauth--warn");
+            _oauthStatusLabel.AddToClassList(isAuthed ? "sheets-oauth--ok" : "sheets-oauth--warn");
+
+            _signInBtn.style.display  = isAuthed ? DisplayStyle.None : DisplayStyle.Flex;
+            _signOutBtn.style.display = isAuthed ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void UpdateTabInfoLabel()
@@ -345,8 +455,7 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 return;
             }
-            string value = $"{direction} {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-            EditorPrefs.SetString(LastSyncPrefKey, value);
+            EditorPrefs.SetString(LastSyncPrefKey, $"{direction} {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         }
 
         private void UpdateLastSyncLabel()

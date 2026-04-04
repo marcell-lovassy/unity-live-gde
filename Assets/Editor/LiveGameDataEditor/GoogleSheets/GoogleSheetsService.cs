@@ -40,6 +40,14 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 ValidateConfig(config);
 
+                // API Key is read-only — Push is not supported.
+                if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
+                {
+                    return SyncResult.Fail(
+                        "API Key mode is read-only. " +
+                        "Switch to OAuth or Service Account auth to push data.");
+                }
+
                 var columns = GameDataColumnDefinition.FromType(container.EntryType);
                 IList entries = container.GetEntries();
 
