@@ -99,29 +99,6 @@ namespace LiveGameDataEditor.Editor
         public static void ImportFromJson(GameDataContainer container)
             => ImportFromJson((IGameDataContainer)container);
 
-        // ── Bulk mutations ─────────────────────────────────────────────────────────
-
-        /// <summary>
-        /// Applies <paramref name="applyAction"/> to every entry at the given indices
-        /// using a single Undo operation, then marks the container dirty.
-        /// </summary>
-        public static void BulkUpdateEntries(
-            GameDataContainer container,
-            List<int> indices,
-            Action<GameDataEntry> applyAction,
-            string undoName)
-        {
-            if (container == null || indices == null || indices.Count == 0 || applyAction == null) return;
-
-            Undo.RecordObject(container, undoName);
-            foreach (int i in indices)
-            {
-                if (i >= 0 && i < container.Entries.Count)
-                    applyAction(container.Entries[i]);
-            }
-            MarkDirty(container);
-        }
-
         // ── Future validation hook ─────────────────────────────────────────────────
 
         /// <summary>
@@ -187,29 +164,6 @@ namespace LiveGameDataEditor.Editor
 
             Undo.RecordObject(so, "Edit Game Data Entry");
             entries[index] = updated;
-            EditorUtility.SetDirty(so);
-        }
-
-        /// <summary>
-        /// Applies <paramref name="applyAction"/> to every entry at <paramref name="indices"/>
-        /// under a single Undo operation.
-        /// </summary>
-        public static void BulkUpdateEntries(
-            IGameDataContainer container,
-            List<int> indices,
-            Action<IGameDataEntry> applyAction,
-            string undoName)
-        {
-            var so = GetScriptableObject(container);
-            if (so == null || indices == null || indices.Count == 0 || applyAction == null) return;
-
-            Undo.RecordObject(so, undoName);
-            IList entries = container.GetEntries();
-            foreach (int i in indices)
-            {
-                if (i >= 0 && i < entries.Count)
-                    applyAction((IGameDataEntry)entries[i]);
-            }
             EditorUtility.SetDirty(so);
         }
 

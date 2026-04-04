@@ -14,25 +14,20 @@ namespace LiveGameDataEditor.Editor
     ///   - Asset selection / creation (<see cref="GameDataSelectionBar"/>)
     ///   - Search / filter toolbar
     ///   - Table view (<see cref="GameDataTableView"/>)
-    ///   - Bulk edit panel (<see cref="GameDataBulkEditPanel"/>)
     ///   - Validation feedback via <see cref="GameDataValidationService"/>
     ///   - JSON import / export
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
-        private IGameDataContainer    _container;
-        private GameDataSelectionBar  _selectionBar;
-        private GameDataTableView     _tableView;
-        private GameDataBulkEditPanel _bulkEditPanel;
-        private VisualElement         _emptyState;
-        private VisualElement         _contentArea;
+        private IGameDataContainer   _container;
+        private GameDataSelectionBar _selectionBar;
+        private GameDataTableView    _tableView;
+        private VisualElement        _emptyState;
+        private VisualElement        _contentArea;
 
         // Toolbar filter state
         private string _searchText  = string.Empty;
         private bool   _enabledOnly = false;
-
-        // Latest selection from the table (kept in sync via event)
-        private List<int> _currentSelection = new();
 
         [MenuItem("Tools/Game Data Editor", priority = 100)]
         public static void OpenWindow()
@@ -133,7 +128,6 @@ namespace LiveGameDataEditor.Editor
                 "Use the picker above to select an existing asset, or create a new one.");
             label.AddToClassList("empty-state-label");
 
-            // Delegate to the selection bar so the same GenericMenu is shown.
             var createBtn = new Button(() => _selectionBar.TriggerCreateNew())
                 { text = "＋ Create New Data Asset" };
             createBtn.AddToClassList("create-btn");
@@ -164,14 +158,8 @@ namespace LiveGameDataEditor.Editor
                 onEntryChanged:  OnEntryChanged,
                 onAddEntry:      OnAddEntry,
                 onRemoveEntries: OnRemoveEntries);
-            _tableView.OnSelectionChanged += HandleSelectionChanged;
-
-            _bulkEditPanel = new GameDataBulkEditPanel();
-            _bulkEditPanel.OnBulkApply  += HandleBulkApply;
-            _bulkEditPanel.style.display = DisplayStyle.None;
 
             _contentArea.Add(_tableView);
-            _contentArea.Add(_bulkEditPanel);
             rootVisualElement.Add(_contentArea);
         }
 
@@ -189,16 +177,12 @@ namespace LiveGameDataEditor.Editor
                 return;
             }
 
-            // Update content area subtitle from GameDataAttribute (or type name fallback).
             _dataTypeLabel.text = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
 
             _tableView.Populate(_container);
             _tableView.SetFilter(_searchText, _enabledOnly);
-            _bulkEditPanel.style.display = DisplayStyle.None;
-            _currentSelection.Clear();
             RunValidation();
 
-            // Update the selection bar info label AFTER populate so the row count is current.
             _selectionBar.UpdateInfo(_container);
         }
 
@@ -234,25 +218,6 @@ namespace LiveGameDataEditor.Editor
         private void OnRemoveEntries(List<int> indices)
         {
             GameDataService.RemoveEntries(_container, indices);
-            RefreshView();
-        }
-
-        private void HandleSelectionChanged(List<int> indices)
-        {
-            _currentSelection = indices;
-
-            bool showBulk = indices.Count >= 2;
-            _bulkEditPanel.style.display = showBulk ? DisplayStyle.Flex : DisplayStyle.None;
-            if (showBulk)
-                _bulkEditPanel.SetSelectionCount(indices.Count);
-        }
-
-        // ── Bulk edit callback ─────────────────────────────────────────────────────
-
-        private void HandleBulkApply(Action<IGameDataEntry> applyAction, string undoName)
-        {
-            if (_container == null || _currentSelection.Count == 0) return;
-            GameDataService.BulkUpdateEntries(_container, _currentSelection, applyAction, undoName);
             RefreshView();
         }
     }
