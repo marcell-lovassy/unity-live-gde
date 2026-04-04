@@ -679,13 +679,13 @@
 }
 
 .welcome-banner-title {
-    font-size: 20px;
+    font-size: 22px;
     -unity-font-style: bold;
     color: #d0e8ff;
 }
 
 .welcome-banner-subtitle {
-    font-size: 11px;
+    font-size: 13px;
     color: #7aacce;
     margin-top: 3px;
 }
@@ -711,7 +711,7 @@
     border-width: 0;
     border-radius: 0;
     color: #9a9a9a;
-    font-size: 11px;
+    font-size: 13px;
     -unity-text-align: middle-left;
     padding: 8px 12px;
     margin: 0;
@@ -755,17 +755,17 @@
 }
 
 .welcome-suppress-toggle {
-    font-size: 10px;
+    font-size: 12px;
     color: #6a6a6a;
 }
 
 .welcome-suppress-toggle Toggle {
-    font-size: 10px;
+    font-size: 12px;
     color: #6a6a6a;
 }
 
 .welcome-close-btn {
-    font-size: 11px;
+    font-size: 13px;
     min-width: 70px;
     height: 24px;
     background-color: #3a3a3a;
@@ -775,7 +775,7 @@
 
 /* Typography */
 .welcome-heading {
-    font-size: 15px;
+    font-size: 17px;
     -unity-font-style: bold;
     color: #d4d4d4;
     margin-bottom: 6px;
@@ -783,7 +783,7 @@
 }
 
 .welcome-subheading {
-    font-size: 12px;
+    font-size: 14px;
     -unity-font-style: bold;
     color: #aaa;
     margin-top: 8px;
@@ -791,14 +791,14 @@
 }
 
 .welcome-para {
-    font-size: 11px;
+    font-size: 13px;
     color: #9a9a9a;
     white-space: normal;
     margin-bottom: 10px;
 }
 
 .welcome-tip {
-    font-size: 10px;
+    font-size: 12px;
     color: #7ec8a0;
     background-color: #1a2e1a;
     border-color: #2a4a2a;
@@ -824,20 +824,20 @@
 }
 
 .welcome-feature-icon {
-    font-size: 16px;
+    font-size: 18px;
     width: 28px;
     flex-shrink: 0;
     margin-top: 1px;
 }
 
 .welcome-feature-title {
-    font-size: 11px;
+    font-size: 13px;
     -unity-font-style: bold;
     color: #c8c8c8;
 }
 
 .welcome-feature-desc {
-    font-size: 10px;
+    font-size: 12px;
     color: #7a7a7a;
     white-space: normal;
 }
@@ -853,7 +853,7 @@
 }
 
 .welcome-step-num {
-    font-size: 14px;
+    font-size: 16px;
     -unity-font-style: bold;
     color: #2d6a9f;
     width: 24px;
@@ -863,21 +863,21 @@
 }
 
 .welcome-step-title {
-    font-size: 11px;
+    font-size: 13px;
     -unity-font-style: bold;
     color: #d4d4d4;
     margin-bottom: 3px;
 }
 
 .welcome-step-body {
-    font-size: 10px;
+    font-size: 12px;
     color: #8a8a8a;
     white-space: normal;
 }
 
 /* CTA / link buttons */
 .welcome-cta-btn {
-    font-size: 12px;
+    font-size: 14px;
     -unity-font-style: bold;
     height: 32px;
     margin-top: 12px;
@@ -893,7 +893,7 @@
 }
 
 .welcome-link-btn {
-    font-size: 11px;
+    font-size: 13px;
     height: 26px;
     margin-top: 4px;
     margin-bottom: 4px;
@@ -910,7 +910,7 @@
 }
 
 .welcome-version-label {
-    font-size: 13px;
+    font-size: 15px;
     -unity-font-style: bold;
     color: #c8c8c8;
     margin-bottom: 8px;
