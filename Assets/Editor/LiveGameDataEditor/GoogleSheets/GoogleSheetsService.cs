@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using LiveGameDataEditor;
@@ -52,7 +53,7 @@ namespace LiveGameDataEditor.GoogleSheets
                     values.Add(BuildDataRow(columns, (IGameDataEntry)entry));
                 }
 
-                string range  = BuildRange(config);
+                string range  = ResolveTabName(container);
                 string url    = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}?valueInputOption=USER_ENTERED";
                 string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
@@ -73,7 +74,7 @@ namespace LiveGameDataEditor.GoogleSheets
                 int updated = (int?)responseObj["updatedCells"] ?? 0;
 
                 string msg = $"Pushed {entries.Count} rows ({updated} cells updated) " +
-                             $"to '{config.TabName}' at {DateTime.Now:HH:mm:ss}.";
+                             $"to tab '{range}' at {DateTime.Now:HH:mm:ss}.";
                 Debug.Log($"[LiveGameDataEditor] GoogleSheets Push: {msg}");
                 return SyncResult.Ok(msg);
             }
@@ -109,7 +110,7 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 ValidateConfig(config);
 
-                string range  = BuildRange(config);
+                string range  = ResolveTabName(container);
                 string url    = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}";
                 string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
@@ -171,7 +172,7 @@ namespace LiveGameDataEditor.GoogleSheets
                     EditorUtility.SetDirty(so);
                 }
 
-                string msg = $"Pulled {importedCount} rows from '{config.TabName}' at {DateTime.Now:HH:mm:ss}.";
+                string msg = $"Pulled {importedCount} rows from tab '{range}' at {DateTime.Now:HH:mm:ss}.";
                 Debug.Log($"[LiveGameDataEditor] GoogleSheets Pull: {msg}");
                 return SyncResult.Ok(msg);
             }
@@ -328,10 +329,19 @@ namespace LiveGameDataEditor.GoogleSheets
 
         // ── Utilities ──────────────────────────────────────────────────────────
 
-        private static string BuildRange(GoogleSheetsConfig config)
+        /// <summary>
+        /// Resolves the Google Sheet tab name for the given container.
+        /// Reads <see cref="GoogleSheetsTabAttribute"/> from the container's concrete type;
+        /// falls back to the entry type name if the attribute is absent.
+        /// </summary>
+        public static string ResolveTabName(IGameDataContainer container)
         {
-            // e.g.  "Sheet1"  or  "EnemyData"  — the API returns all rows when no cell range is given.
-            return string.IsNullOrWhiteSpace(config.TabName) ? "Sheet1" : config.TabName;
+            var attr = container.GetType().GetCustomAttribute<GoogleSheetsTabAttribute>(inherit: true);
+            if (attr != null && !string.IsNullOrWhiteSpace(attr.TabName))
+            {
+                return attr.TabName;
+            }
+            return container.EntryType.Name;
         }
 
         private static void ValidateConfig(GoogleSheetsConfig config)

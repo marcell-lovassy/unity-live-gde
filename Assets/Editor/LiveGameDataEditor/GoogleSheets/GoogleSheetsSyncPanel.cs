@@ -35,6 +35,7 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private ObjectField   _configField;
         private Label         _authBadge;
+        private Label         _tabInfoLabel;   // read-only label showing the resolved tab name
         private Button        _pushBtn;
         private Button        _pullBtn;
         private Label         _statusLabel;
@@ -89,6 +90,7 @@ namespace LiveGameDataEditor.GoogleSheets
             RefreshButtons();
             SetStatus("", success: true);
             UpdateLastSyncLabel();
+            UpdateTabInfoLabel();
         }
 
         // ── UI construction ────────────────────────────────────────────────────
@@ -102,6 +104,11 @@ namespace LiveGameDataEditor.GoogleSheets
             var titleLabel = new Label("☁  Google Sheets Sync");
             titleLabel.AddToClassList("sheets-panel-title");
             headerRow.Add(titleLabel);
+
+            // Read-only label showing which tab this container maps to.
+            _tabInfoLabel = new Label("");
+            _tabInfoLabel.AddToClassList("sheets-tab-info");
+            headerRow.Add(_tabInfoLabel);
 
             Add(headerRow);
 
@@ -205,7 +212,7 @@ namespace LiveGameDataEditor.GoogleSheets
                 return;
             }
 
-            var newConfig = CreateInstance<GoogleSheetsConfig>();
+            var newConfig = ScriptableObject.CreateInstance<GoogleSheetsConfig>();
             AssetDatabase.CreateAsset(newConfig, path);
             AssetDatabase.SaveAssets();
             SetConfig(newConfig, saveToPrefs: true);
@@ -309,6 +316,23 @@ namespace LiveGameDataEditor.GoogleSheets
             _authBadge.AddToClassList(_config.AuthMode == GoogleSheetsAuthMode.ApiKey
                 ? "sheets-badge--apikey"
                 : "sheets-badge--sa");
+        }
+
+        private void UpdateTabInfoLabel()
+        {
+            if (_tabInfoLabel == null)
+            {
+                return;
+            }
+            if (_container == null)
+            {
+                _tabInfoLabel.text = "";
+                _tabInfoLabel.style.display = DisplayStyle.None;
+                return;
+            }
+            string tabName = GoogleSheetsService.ResolveTabName(_container);
+            _tabInfoLabel.text = $"→ tab: {tabName}";
+            _tabInfoLabel.style.display = DisplayStyle.Flex;
         }
 
         // ── Last-sync persistence ──────────────────────────────────────────────

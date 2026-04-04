@@ -494,6 +494,14 @@
     color: #7ec8e3;
 }
 
+/* Tab name info label (e.g. "→ tab: Enemies") */
+.sheets-tab-info {
+    font-size: 10px;
+    color: #5a8a9a;
+    margin-left: 8px;
+    -unity-text-align: middle-left;
+}
+
 .sheets-row {
     flex-direction: row;
     align-items: center;

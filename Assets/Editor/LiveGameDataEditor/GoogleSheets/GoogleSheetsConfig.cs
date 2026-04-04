@@ -3,12 +3,20 @@ using UnityEngine;
 namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
-    /// Stores all configuration needed to sync a GameDataContainer with a Google Sheet.
+    /// Stores the connection settings needed to reach a Google Spreadsheet.
     /// Create via <c>Assets / Create / Live Game Data / Google Sheets Config</c>.
+    ///
+    /// One config asset is shared across all data containers in your project.
+    /// Each container declares its own tab name via <see cref="GoogleSheetsTabAttribute"/>:
+    /// <code>
+    /// [GoogleSheetsTab("Enemies")]
+    /// public class EnemyDataContainer : GameDataContainerBase&lt;EnemyDataEntry&gt; { }
+    /// </code>
+    /// If the attribute is absent the service falls back to the entry type name.
     ///
     /// Credentials (API key or service account JSON path) are stored in this asset.
     /// If you use a Service Account, keep the <c>.json</c> key file outside <c>Assets/</c>
-    /// and add it to <c>.gitignore</c> so it is never committed.
+    /// and add it to <c>.gitignore</c> so it is never committed to source control.
     /// </summary>
     [CreateAssetMenu(
         menuName = "Live Game Data/Google Sheets Config",
@@ -16,15 +24,14 @@ namespace LiveGameDataEditor.GoogleSheets
         order    = 51)]
     public class GoogleSheetsConfig : ScriptableObject
     {
-        // ── Sheet location ─────────────────────────────────────────────────────
+        // ── Spreadsheet ────────────────────────────────────────────────────────
 
-        [Tooltip("The ID from the spreadsheet URL:\nhttps://docs.google.com/spreadsheets/d/<ID>/edit")]
+        [Tooltip("The ID from the spreadsheet URL:\nhttps://docs.google.com/spreadsheets/d/<ID>/edit\n\n" +
+                 "This config is shared across all containers. Each container maps to its own tab " +
+                 "via [GoogleSheetsTab(\"TabName\")] on the container class.")]
         public string SpreadsheetId = "";
 
-        [Tooltip("The tab (sheet) name inside the spreadsheet. Defaults to 'Sheet1'.")]
-        public string TabName = "Sheet1";
-
-        [Tooltip("When true, the first row of the sheet is treated as a header row " +
+        [Tooltip("When true, the first row of each tab is treated as a header row " +
                  "containing field names. Always keep this on.")]
         public bool HasHeaderRow = true;
 
@@ -47,7 +54,7 @@ namespace LiveGameDataEditor.GoogleSheets
 
         // ── Sync behaviour ────────────────────────────────────────────────────
 
-        [Tooltip("Automatically push to the sheet every time the container asset is saved (Ctrl+S).")]
+        [Tooltip("Automatically push to the sheet every time a container asset is saved (Ctrl+S).")]
         public bool AutoPushOnSave = false;
 
         // ── Internal ──────────────────────────────────────────────────────────
@@ -88,3 +95,4 @@ namespace LiveGameDataEditor.GoogleSheets
         ServiceAccount,
     }
 }
+
