@@ -4,7 +4,7 @@ namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
     /// Stores the connection settings needed to reach a Google Spreadsheet.
-    /// Create via <c>Assets / Create / Live Game Data / Google Sheets Config</c>.
+    /// Create via <c>Assets / Create / Game Data Spreadsheet Editor / Google Sheets Config</c>.
     ///
     /// One config asset is shared across all data containers in your project.
     /// Each container declares its own tab name via <see cref="GoogleSheetsTabAttribute"/>:
@@ -18,7 +18,7 @@ namespace LiveGameDataEditor.GoogleSheets
     /// If you use a Service Account, keep the <c>.json</c> key file outside <c>Assets/</c>
     /// and add it to <c>.gitignore</c> so it is never committed to source control.
     /// </summary>
-    [CreateAssetMenu(menuName = "Live Game Data Editor/Google Sheets Config", fileName = "NewGoogleSheetsConfig", order    = 51)]
+    [CreateAssetMenu(menuName = "Game Data Spreadsheet Editor/Google Sheets Config", fileName = "NewGoogleSheetsConfig", order    = 51)]
     public class GoogleSheetsConfig : ScriptableObject
     {
         // ── Spreadsheet ────────────────────────────────────────────────────────

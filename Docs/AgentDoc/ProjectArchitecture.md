@@ -2,7 +2,7 @@
 
 ## Summary
 
-Live Game Data Editor is a Unity Editor tool for editing game data assets through a spreadsheet-style UI. Runtime code defines serializable data contracts and attributes. Editor code provides the UI, asset services, serializers, validation, and integrations.
+Game Data Spreadsheet Editor is a Unity Editor tool for editing game data assets through a spreadsheet-style UI. Runtime code defines serializable data contracts and attributes. Editor code provides the UI, asset services, serializers, validation, and integrations.
 
 ## Assemblies
 

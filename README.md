@@ -1,6 +1,6 @@
-# Live Game Data Editor
+# Game Data Spreadsheet Editor
 
-**Live Game Data Editor** is a Unity Editor extension for editing ScriptableObject-backed game data in a spreadsheet-style workflow. It gives designers and developers a focused data-editing window inside Unity, with typed rows, validation, import/export tools, and optional Google Sheets synchronization.
+**Game Data Spreadsheet Editor** is a Unity Editor extension for editing ScriptableObject-backed game data in a spreadsheet-style workflow. It gives designers and developers a focused data-editing window inside Unity, with typed rows, validation, import/export tools, and optional Google Sheets synchronization.
 
 The project is built with **UI Toolkit** and split into clean runtime/editor assemblies so game data types can stay build-safe while authoring tools remain editor-only.
 
@@ -22,7 +22,7 @@ The project is built with **UI Toolkit** and split into clean runtime/editor ass
 
 ## Project Description
 
-Live Game Data Editor is designed for projects where game balance, configuration, and content tables need to be edited quickly without leaving Unity. Instead of hand-editing serialized assets or maintaining separate tooling, users can open a dedicated editor window, select a data container, and work with rows and columns in a familiar table interface.
+Game Data Spreadsheet Editor is designed for projects where game balance, configuration, and content tables need to be edited quickly without leaving Unity. Instead of hand-editing serialized assets or maintaining separate tooling, users can open a dedicated editor window, select a data container, and work with rows and columns in a familiar table interface.
 
 The runtime layer defines the data contracts: entries, containers, field metadata attributes, and sample typed data. The editor layer handles the authoring experience: asset selection, table rendering, row editing, validation, Undo/Redo, import/export, and Google Sheets integration.
 

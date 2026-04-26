@@ -1,4 +1,4 @@
-Live Game Data Editor - Third-Party Notices
+Game Data Spreadsheet Editor - Third-Party Notices
 
 This package depends on the Unity Package Manager package:
 

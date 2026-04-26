@@ -3,7 +3,7 @@ using System;
 namespace LiveGameDataEditor
 {
     /// <summary>
-    /// Overrides the column header label shown in the Live Game Data Editor table.
+    /// Overrides the column header label shown in the Game Data Spreadsheet Editor table.
     /// If absent the editor uses the field's name as-is.
     /// </summary>
     /// <example>

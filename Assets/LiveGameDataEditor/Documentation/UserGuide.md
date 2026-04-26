@@ -1,8 +1,8 @@
-# Live Game Data Editor User Guide
+# Game Data Spreadsheet Editor User Guide
 
 ## Overview
 
-Live Game Data Editor is a Unity Editor tool for editing ScriptableObject-backed game data in a table-based workflow. It is intended for designers, technical designers, and developers who want to maintain balance values, content rows, or configuration data directly inside Unity.
+Game Data Spreadsheet Editor is a Unity Editor tool for editing ScriptableObject-backed game data in a table-based workflow. It is intended for designers, technical designers, and developers who want to maintain balance values, content rows, or configuration data directly inside Unity.
 
 The package is split into:
 

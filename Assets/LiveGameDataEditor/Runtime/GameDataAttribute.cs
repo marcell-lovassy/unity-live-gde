@@ -5,7 +5,7 @@ namespace LiveGameDataEditor
     /// <summary>
     /// Optional metadata attribute for game data entry classes.
     /// Apply to any class implementing <see cref="IGameDataEntry"/> to provide a
-    /// human-readable display name shown in the Live Game Data Editor window.
+    /// human-readable display name shown in the Game Data Spreadsheet Editor window.
     ///
     /// If absent, the editor falls back to the class's type name.
     /// </summary>

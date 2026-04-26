@@ -4,7 +4,7 @@ namespace LiveGameDataEditor
 {
     /// <summary>
     /// Declares which Google Sheet tab this container's data maps to when using
-    /// the Live Game Data Editor's Google Sheets Sync feature.
+    /// the Game Data Spreadsheet Editor's Google Sheets Sync feature.
     ///
     /// Place this attribute on your <see cref="GameDataContainerBase{T}"/> subclass.
     /// If the attribute is absent, the sync service falls back to the entry type name.

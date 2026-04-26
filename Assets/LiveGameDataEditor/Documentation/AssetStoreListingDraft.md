@@ -8,11 +8,11 @@ This package depends on `com.unity.nuget.newtonsoft-json`, provided through Unit
 
 ## Short Description
 
-Live Game Data Editor is a Unity Editor tool for editing ScriptableObject-backed game data in a spreadsheet-style UI. It helps designers and developers manage balance values, content rows, and configuration data directly inside Unity.
+Game Data Spreadsheet Editor is a Unity Editor tool for editing ScriptableObject-backed game data in a spreadsheet-style UI. It helps designers and developers manage balance values, content rows, and configuration data directly inside Unity.
 
 ## Long Description
 
-Live Game Data Editor provides a focused authoring workflow for ScriptableObject data. Create typed data containers, edit rows in a table, validate common data issues, and round trip data through JSON or CSV. Optional Google Sheets sync lets teams pull or push data from spreadsheets when they configure their own Google Cloud credentials.
+Game Data Spreadsheet Editor provides a focused authoring workflow for ScriptableObject data. Create typed data containers, edit rows in a table, validate common data issues, and round trip data through JSON or CSV. Optional Google Sheets sync lets teams pull or push data from spreadsheets when they configure their own Google Cloud credentials.
 
 The package uses UI Toolkit and separates runtime data contracts from editor-only tooling through assembly definitions. Runtime types stay build-safe, while editor services handle Undo/Redo, validation, import/export, and external sync.
 

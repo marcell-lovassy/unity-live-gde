@@ -4,7 +4,7 @@ namespace LiveGameDataEditor
 {
     /// <summary>
     /// Marks a <c>List&lt;T&gt;</c> or <c>T[]</c> field for display and editing in the
-    /// Live Game Data Editor table. Without this attribute, collection fields are shown
+    /// Game Data Spreadsheet Editor table. Without this attribute, collection fields are shown
     /// as a read-only label.
     ///
     /// In the table the list is rendered as a single text cell whose items are joined

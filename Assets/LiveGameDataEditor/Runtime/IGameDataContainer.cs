@@ -6,7 +6,7 @@ namespace LiveGameDataEditor
     /// <summary>
     /// Marker interface for a ScriptableObject that holds a list of <see cref="IGameDataEntry"/> items.
     /// Implement this (via <see cref="GameDataContainerBase{T}"/>) to make any data container
-    /// discoverable and editable by the Live Game Data Editor.
+    /// discoverable and editable by the Game Data Spreadsheet Editor.
     /// </summary>
     public interface IGameDataContainer
     {

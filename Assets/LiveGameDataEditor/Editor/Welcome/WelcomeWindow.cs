@@ -52,7 +52,7 @@ namespace LiveGameDataEditor.Editor
         [MenuItem("Tools/GDE/Welcome", priority = 200)]
         public static void ShowWindow()
         {
-            var window = GetWindow<WelcomeWindow>(utility: true, title: "Live Game Data Editor");
+            var window = GetWindow<WelcomeWindow>(utility: true, title: "Game Data Spreadsheet Editor");
             window.minSize = new Vector2(660, 580);
             window.maxSize = new Vector2(660, 580);
             window.ShowUtility();
@@ -104,7 +104,7 @@ namespace LiveGameDataEditor.Editor
             var banner = new VisualElement();
             banner.AddToClassList("welcome-banner");
 
-            var title = new Label("Live Game Data Editor");
+            var title = new Label("Game Data Spreadsheet Editor");
             title.AddToClassList("welcome-banner-title");
             banner.Add(title);
 
@@ -235,7 +235,7 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(Heading("Welcome!"));
             scroll.Add(Para(
-                "Live Game Data Editor brings a spreadsheet-style workflow to Unity. " +
+                "Game Data Spreadsheet Editor brings a spreadsheet-style workflow to Unity. " +
                 "Edit your ScriptableObject data in a resizable, sortable, filterable table — " +
                 "No custom tools or coding required."));
 
@@ -261,7 +261,7 @@ namespace LiveGameDataEditor.Editor
                 Close();
                 EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
             })
-            { text = "Open Game Data Editor  →" };
+            { text = "Open Game Data Spreadsheet Editor  →" };
             openBtn.AddToClassList("welcome-cta-btn");
             scroll.Add(openBtn);
 
@@ -280,7 +280,7 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(Step(1, "Create a data container",
                 "In the Project window:\n" +
-                "Assets → Create → Live Game Data / Enemy Data Container\n" +
+                "Assets → Create → Game Data Spreadsheet Editor / Enemy Data Container\n" +
                 "(or any container type you've defined)"));
 
             scroll.Add(Step(2, "Open the editor",
@@ -568,7 +568,7 @@ namespace LiveGameDataEditor.Editor
                 Close();
                 EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
             })
-            { text = "Open Game Data Editor  →" };
+            { text = "Open Game Data Spreadsheet Editor  →" };
             openBtn.AddToClassList("welcome-cta-btn");
             form.Add(openBtn);
 
@@ -821,7 +821,7 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(Heading("About"));
 
-            var versionLabel = new Label($"Live Game Data Editor  v{Version}");
+            var versionLabel = new Label($"Game Data Spreadsheet Editor  v{Version}");
             versionLabel.AddToClassList("welcome-version-label");
             scroll.Add(versionLabel);
 

@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Main editor window for the Live Game Data Editor.
+    /// Main editor window for the Game Data Spreadsheet Editor.
     /// Open via: Tools > GDE > Open Editor
     ///
     /// Layout:
@@ -54,7 +54,7 @@ namespace LiveGameDataEditor.Editor
         {
             var window = GetWindow<LiveGameDataEditorWindow>();
             window.titleContent = new GUIContent(
-                "Game Data Editor",
+                "Game Data Spreadsheet Editor",
                 EditorGUIUtility.IconContent("d_ScriptableObject Icon").image);
             window.minSize = new Vector2(700, 420);
         }
@@ -363,13 +363,13 @@ namespace LiveGameDataEditor.Editor
 
         /// <summary>
         /// Polls the loaded SO's dirty state each editor frame and reflects it in the
-        /// window title as a bullet dot: "● Game Data Editor" when unsaved changes exist.
+        /// window title as a bullet dot when unsaved changes exist.
         /// </summary>
         private void UpdateDirtyIndicator()
         {
             var so    = _container as ScriptableObject;
             bool dirty = so != null && EditorUtility.IsDirty(so);
-            string title = dirty ? "● Game Data Editor" : "Game Data Editor";
+            string title = dirty ? "● Game Data Spreadsheet Editor" : "Game Data Spreadsheet Editor";
             if (titleContent.text != title)
             {
                 titleContent.text = title;
