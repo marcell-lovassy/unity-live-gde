@@ -9,7 +9,7 @@ After C# changes, verify the Unity project compiles. If Unity is not available i
 Use this manual flow for editor-facing changes:
 
 1. Open the project in Unity.
-2. Open `Tools > Game Data Editor`.
+2. Open `Tools > GDE > Open Editor`.
 3. Select an existing data asset or create a new one.
 4. Confirm the table renders without console errors.
 5. Add a row, edit values, remove a row, and save.

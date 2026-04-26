@@ -58,6 +58,10 @@ namespace LiveGameDataEditor.Editor
         // When present, the column uses a fixed width instead of flexGrow.
         private readonly Dictionary<string, float> _colWidthOverrides = new();
 
+        // Shared computed column widths, keyed by field name. Header, rows, and stats
+        // all consume this map so layout does not depend on resolved header timing.
+        private readonly Dictionary<string, float> _computedColumnWidths = new();
+
         // Header cells tracked for resize updates, keyed by field name
         private readonly Dictionary<string, VisualElement> _headerCells = new();
 
@@ -74,6 +78,7 @@ namespace LiveGameDataEditor.Editor
         private bool          _dragPending       = false;   // pointer down, awaiting threshold move
         private Vector2       _dragStartPosition;           // world position at pointer-down
         private const float   DragThreshold      = 5f;     // pixels before drag activates
+        private const float   GutterWidth        = 26f;
         private int           _draggingDataIndex = -1;
         private int           _dropTargetVisibleIdx = -1; // insert-before position in visible rows
         private VisualElement _dropIndicator;
@@ -121,10 +126,16 @@ namespace LiveGameDataEditor.Editor
             // Sync header and stats horizontal position with the ScrollView's horizontal offset
             _scrollView.horizontalScroller.valueChanged += offset =>
             {
-                var pos = new Vector3(-offset, 0, 0);
-                _headerRow.transform.position = pos;
-                if (_statsRow != null) _statsRow.transform.position = pos;
+                SyncHorizontalOffset(offset);
             };
+
+            RegisterCallback<GeometryChangedEvent>(evt =>
+            {
+                if (!Mathf.Approximately(evt.oldRect.width, evt.newRect.width))
+                {
+                    ScheduleColumnLayout();
+                }
+            });
 
             BuildStatsRow();
             BuildFooter();
@@ -154,10 +165,18 @@ namespace LiveGameDataEditor.Editor
             _headerCells.Clear();
             _statsLabels.Clear();
             _statsCells.Clear();
+            _computedColumnWidths.Clear();
 
             if (container == null)
             {
+                _columns = new List<GameDataColumnDefinition>();
                 RebuildStatsRow();
+                _headerRow.style.width = 0;
+                _scrollView.contentContainer.style.minWidth = 0;
+                if (_statsRow != null)
+                {
+                    _statsRow.style.width = 0;
+                }
                 return;
             }
 
@@ -178,16 +197,11 @@ namespace LiveGameDataEditor.Editor
                 row.OnRequestNextRow   += colIndex  => NavigateToNextRow(row, colIndex);
                 row.OnDragHandlePointerDown += (pos) => BeginRowDrag(capturedIndex, pos);
 
-                // Apply any existing column width overrides to this new row.
-                foreach (var kvp in _colWidthOverrides)
-                {
-                    row.SetColumnWidth(kvp.Key, kvp.Value);
-                }
-
                 _rows.Add(row);
             }
 
             ApplyFilterAndSort();
+            ScheduleColumnLayout(resetHorizontalScroll: true);
         }
 
         /// <summary>
@@ -359,6 +373,155 @@ namespace LiveGameDataEditor.Editor
 
             // Step 5: update drag handle visibility (only enabled when no sort/filter is active)
             RefreshDragHandles();
+            ScheduleColumnLayout();
+        }
+
+        private void ScheduleColumnLayout(bool resetHorizontalScroll = false)
+        {
+            if (resetHorizontalScroll)
+            {
+                _scrollView.horizontalScroller.value = 0;
+                SyncHorizontalOffset(0);
+            }
+
+            // UI Toolkit resolves viewport sizes after the current layout pass. A
+            // second delayed pass catches switches where scrollbar visibility changes.
+            schedule.Execute(UpdateColumnLayout).ExecuteLater(0);
+            schedule.Execute(UpdateColumnLayout).ExecuteLater(50);
+        }
+
+        private void UpdateColumnLayout()
+        {
+            RecalculateColumnWidths();
+            ApplyComputedColumnWidths();
+        }
+
+        private void RecalculateColumnWidths()
+        {
+            _computedColumnWidths.Clear();
+
+            if (_columns == null || _columns.Count == 0)
+            {
+                return;
+            }
+
+            float availableWidth = Mathf.Max(0, GetAvailableTableWidth() - GutterWidth);
+            float fixedWidth = 0;
+            float flexibleMinWidth = 0;
+            float totalFlexGrow = 0;
+
+            foreach (var col in _columns)
+            {
+                string fieldName = col.Field.Name;
+
+                if (_colWidthOverrides.TryGetValue(fieldName, out float overrideWidth))
+                {
+                    fixedWidth += Mathf.Max(col.MinWidth, overrideWidth);
+                    continue;
+                }
+
+                if (col.FlexGrow < 0.01f)
+                {
+                    fixedWidth += col.MinWidth;
+                    continue;
+                }
+
+                flexibleMinWidth += col.MinWidth;
+                totalFlexGrow += col.FlexGrow;
+            }
+
+            float flexibleSpace = Mathf.Max(flexibleMinWidth, availableWidth - fixedWidth);
+            float extraFlexibleSpace = Mathf.Max(0, flexibleSpace - flexibleMinWidth);
+
+            foreach (var col in _columns)
+            {
+                string fieldName = col.Field.Name;
+
+                if (_colWidthOverrides.TryGetValue(fieldName, out float overrideWidth))
+                {
+                    _computedColumnWidths[fieldName] = Mathf.Max(col.MinWidth, overrideWidth);
+                    continue;
+                }
+
+                if (col.FlexGrow < 0.01f || totalFlexGrow < 0.01f)
+                {
+                    _computedColumnWidths[fieldName] = col.MinWidth;
+                    continue;
+                }
+
+                float flexShare = extraFlexibleSpace * (col.FlexGrow / totalFlexGrow);
+                _computedColumnWidths[fieldName] = col.MinWidth + flexShare;
+            }
+        }
+
+        private void ApplyComputedColumnWidths()
+        {
+            if (_computedColumnWidths.Count == 0)
+            {
+                return;
+            }
+
+            float contentWidth = GutterWidth;
+
+            foreach (var col in _columns)
+            {
+                string fieldName = col.Field.Name;
+                if (!_computedColumnWidths.TryGetValue(fieldName, out float width))
+                {
+                    continue;
+                }
+
+                contentWidth += width;
+
+                if (_headerCells.TryGetValue(fieldName, out var headerCell))
+                {
+                    SetFixedWidth(headerCell, width);
+                }
+
+                if (_statsCells.TryGetValue(fieldName, out var statsCell))
+                {
+                    SetFixedWidth(statsCell, width);
+                }
+
+                foreach (var row in _rows)
+                {
+                    row.SetColumnWidth(fieldName, width);
+                }
+            }
+
+            _headerRow.style.width = contentWidth;
+            _scrollView.contentContainer.style.minWidth = contentWidth;
+            if (_statsRow != null)
+            {
+                _statsRow.style.width = contentWidth;
+            }
+
+            SyncHorizontalOffset(_scrollView.horizontalScroller.value);
+        }
+
+        private float GetAvailableTableWidth()
+        {
+            float width = _scrollView.contentViewport.resolvedStyle.width;
+            if (width > 0)
+            {
+                return width;
+            }
+
+            width = _scrollView.resolvedStyle.width;
+            if (width > 0)
+            {
+                return width;
+            }
+
+            width = resolvedStyle.width;
+            return width > 0 ? width : 0;
+        }
+
+        private void SyncHorizontalOffset(float offset)
+        {
+            var translate = new Translate(-offset, 0);
+            _headerRow.style.translate = translate;
+            if (_statsRow != null) _statsRow.style.translate = translate;
         }
 
         // ── Stats row ──────────────────────────────────────────────────────────────
@@ -385,13 +548,10 @@ namespace LiveGameDataEditor.Editor
             _statsLabels.Clear();
             _statsCells.Clear();
 
-            // Gutter to align with data rows
-            var gutter = new VisualElement();
-            gutter.AddToClassList("col-gutter");
-            _statsRow.Add(gutter);
-
-            // Row count on the left of the gutter
+            // Row count occupies the same gutter slot as header/body rows so stat
+            // cells line up with their matching data columns.
             _statsCountLabel = new Label();
+            _statsCountLabel.AddToClassList("col-gutter");
             _statsCountLabel.AddToClassList("stats-count-label");
             _statsRow.Add(_statsCountLabel);
 
@@ -406,11 +566,6 @@ namespace LiveGameDataEditor.Editor
                 label.AddToClassList("stats-cell");
                 label.AddToClassList($"col-{col.Field.Name.ToLower()}");
                 ApplySizing(label, col);
-                // Apply any existing override
-                if (_colWidthOverrides.TryGetValue(col.Field.Name, out float w))
-                {
-                    SetFixedWidth(label, w);
-                }
                 _statsRow.Add(label);
                 _statsLabels.Add(label);
                 _statsCells[col.Field.Name] = label;
@@ -424,7 +579,9 @@ namespace LiveGameDataEditor.Editor
         {
             if (_statsCountLabel != null)
             {
-                _statsCountLabel.text = $"{_visibleIndices.Count} row{(_visibleIndices.Count == 1 ? "" : "s")}";
+                int rowCount = _visibleIndices.Count;
+                _statsCountLabel.text = rowCount.ToString();
+                _statsCountLabel.tooltip = $"{rowCount} row{(rowCount == 1 ? "" : "s")}";
             }
 
             if (_container == null || _statsLabels.Count == 0)
@@ -740,18 +897,7 @@ namespace LiveGameDataEditor.Editor
                     dragging = false;
                     handle.ReleasePointer(evt.pointerId);
                     _colWidthOverrides.Remove(fieldName);
-                    if (_headerCells.TryGetValue(fieldName, out var hc))
-                    {
-                        ApplySizing(hc, col);
-                    }
-                    if (_statsCells.TryGetValue(fieldName, out var sc))
-                    {
-                        ApplySizing(sc, col);
-                    }
-                    foreach (var row in _rows)
-                    {
-                        row.ResetColumnSizing(fieldName, col);
-                    }
+                    UpdateColumnLayout();
                     evt.StopPropagation();
                     return;
                 }
@@ -797,21 +943,7 @@ namespace LiveGameDataEditor.Editor
         private void ApplyWidthOverride(string fieldName, float width)
         {
             _colWidthOverrides[fieldName] = width;
-
-            if (_headerCells.TryGetValue(fieldName, out var headerCell))
-            {
-                SetFixedWidth(headerCell, width);
-            }
-
-            if (_statsCells.TryGetValue(fieldName, out var statsCell))
-            {
-                SetFixedWidth(statsCell, width);
-            }
-
-            foreach (var row in _rows)
-            {
-                row.SetColumnWidth(fieldName, width);
-            }
+            UpdateColumnLayout();
         }
 
         private static void SetFixedWidth(VisualElement el, float width)

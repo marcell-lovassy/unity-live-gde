@@ -20,6 +20,8 @@ Before release, confirm the package includes:
 - Editor scripts and USS files needed by the tool.
 - Sample runtime types and sample data assets that demonstrate the workflow.
 - README and license files.
+- Offline package documentation under `Assets/LiveGameDataEditor/Documentation`.
+- Third-party notices for package dependencies and API integrations.
 - Required `.meta` files for all Unity assets.
 
 Before release, confirm the package excludes:
@@ -31,12 +33,14 @@ Before release, confirm the package excludes:
 - IDE caches
 - Generated `.csproj` and `.sln` files unless the distribution process explicitly requires them
 - Local credentials, tokens, or private Google Sheets data
+- Empty root folders outside `Assets/LiveGameDataEditor`
 
 ## User-Facing Checks
 
 - README matches the actual folder structure and menu paths.
-- `Tools > Game Data Editor` opens the editor window.
+- `Tools > GDE > Open Editor` opens the editor window.
 - A new user can create or select a data asset without extra setup.
+- Sample data assets exist under `Assets/LiveGameDataEditor/Data/Samples`.
 - Samples demonstrate a real workflow and do not depend on private services.
 - Error messages are understandable for designers and technical artists.
 
@@ -48,6 +52,7 @@ Before release, confirm the package excludes:
 - JSON/CSV import and export round trip sample data.
 - Validation catches empty IDs and duplicate IDs.
 - Google Sheets integration fails gracefully when not configured.
+- `Packages/manifest.json` includes only dependencies required by the package.
 
 ## Documentation Checks
 
@@ -62,7 +67,7 @@ Before release, confirm the package excludes:
 1. Open a clean checkout in a supported Unity version.
 2. Let Unity import the project from scratch.
 3. Confirm there are no compile errors.
-4. Open `Tools > Game Data Editor`.
+4. Open `Tools > GDE > Open Editor`.
 5. Create or select a data asset.
 6. Add, edit, remove, import, export, undo, and redo.
 7. Confirm no private files or generated folders are included in the release payload.

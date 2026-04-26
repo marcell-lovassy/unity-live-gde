@@ -14,6 +14,7 @@ The project is built with **UI Toolkit** and split into clean runtime/editor ass
 | **Tested on** | Unity 6 (6000.0.x) |
 | **UI System** | UI Toolkit |
 | **Primary data model** | ScriptableObject containers |
+| **Required UPM dependency** | `com.unity.nuget.newtonsoft-json` |
 | **Runtime assembly** | `LiveGameDataEditor.Runtime` |
 | **Editor assembly** | `LiveGameDataEditor.Editor` |
 
@@ -48,7 +49,7 @@ This separation keeps the package practical for production projects: runtime dat
 
 1. Open the project in **Unity 2022.3 LTS** or **Unity 6**.
 2. From the menu bar, choose **Tools > GDE > Open Editor**.
-3. Select an existing data container or create a compatible ScriptableObject data asset.
+3. Select a sample data asset from `Assets/LiveGameDataEditor/Data/Samples`, or create a compatible ScriptableObject data asset.
 4. Edit rows in the table.
 5. Use validation, import/export, Undo/Redo, or Google Sheets tools as needed.
 
@@ -101,6 +102,16 @@ Assets/
         GoogleSheetsConfig.cs
         GoogleSheetsService.cs
         GoogleSheetsSyncPanel.cs
+
+    Data/
+      Samples/
+        GameDataEntryContainer.asset
+        EnemyDataEntryContainer.asset
+        GoogleSheetsConfig.asset
+
+    Documentation/
+      UserGuide.md
+    Third-Party Notices.txt
 ```
 
 ---
@@ -143,6 +154,12 @@ ScriptableObject data container
 
 ## Documentation
 
+Package user documentation is included at:
+
+- `Assets/LiveGameDataEditor/Documentation/UserGuide.md`
+- `Assets/LiveGameDataEditor/Documentation/AssetStoreListingDraft.md`
+- `Assets/LiveGameDataEditor/Third-Party Notices.txt`
+
 Agent-facing project documentation is available under `Docs/AgentDoc`:
 
 - `ProjectArchitecture.md`
@@ -151,6 +168,14 @@ Agent-facing project documentation is available under `Docs/AgentDoc`:
 - `AssetStoreRelease.md`
 
 These files describe implementation boundaries, Unity workflow rules, validation expectations, and release checks for future coding agents.
+
+---
+
+## Google Sheets And API Usage
+
+Google Sheets sync is optional. The editor works offline for local ScriptableObject editing, JSON export/import, and CSV export/import.
+
+When Google Sheets sync is enabled, users must provide their own Google Cloud credentials. API keys, OAuth credentials, service account key files, private spreadsheet IDs, and related secrets should not be committed to public source control. Google API usage is subject to Google's terms, quotas, permissions, and possible costs.
 
 ---
 

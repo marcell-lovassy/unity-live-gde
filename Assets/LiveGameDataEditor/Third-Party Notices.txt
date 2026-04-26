@@ -1,0 +1,11 @@
+Live Game Data Editor - Third-Party Notices
+
+This package depends on the Unity Package Manager package:
+
+com.unity.nuget.newtonsoft-json
+
+Newtonsoft.Json is distributed under the MIT License. Unity provides this dependency through the Unity Package Manager package `com.unity.nuget.newtonsoft-json`.
+
+This package can optionally connect to Google Sheets through Google APIs when the user configures their own Google Cloud credentials. No Google credentials, API keys, service account key files, or private spreadsheet IDs are included with this package.
+
+Google API usage is subject to Google's terms, quotas, permissions, and possible costs. Users are responsible for configuring their own Google Cloud project and credentials.

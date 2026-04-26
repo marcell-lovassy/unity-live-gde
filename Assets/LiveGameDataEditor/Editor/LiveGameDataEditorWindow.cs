@@ -9,7 +9,7 @@ namespace LiveGameDataEditor.Editor
 {
     /// <summary>
     /// Main editor window for the Live Game Data Editor.
-    /// Open via: Tools > Game Data Editor
+    /// Open via: Tools > GDE > Open Editor
     ///
     /// Layout:
     ///   SelectionBar

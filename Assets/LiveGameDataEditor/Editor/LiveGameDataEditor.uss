@@ -362,7 +362,7 @@
 .stats-row {
     flex-direction: row;
     align-items: center;
-    padding: 3px 4px;
+    padding: 3px 0;
     background-color: #2e3440;
     border-top-width: 1px;
     border-top-color: #1a1a1a;
@@ -381,9 +381,11 @@
 .stats-count-label {
     font-size: 10px;
     color: #616e88;
-    width: 24px;
+    width: 26px;
+    min-width: 26px;
     -unity-text-align: middle-right;
-    padding: 0 4px;
+    padding: 0;
+    overflow: hidden;
     flex-shrink: 0;
 }
 
