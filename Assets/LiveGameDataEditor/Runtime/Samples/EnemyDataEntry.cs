@@ -8,7 +8,7 @@ namespace LiveGameDataEditor
 
     /// <summary>
     /// Example game data entry demonstrating all supported field types:
-    ///   string, int, bool, enum, and List<typeparam></typeparam>>; with [ListField].
+    ///   string, int, bool, enum, and List&lt;T&gt; with [ListField].
     /// </summary>
     [GameData(DisplayName = "Enemy")]
     [Serializable]
