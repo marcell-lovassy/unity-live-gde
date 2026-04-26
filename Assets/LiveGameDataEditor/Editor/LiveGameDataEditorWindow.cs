@@ -113,9 +113,9 @@ namespace LiveGameDataEditor.Editor
             toolbar.Add(browseBtn);
 
             // Search field
-            var searchField = new TextField { value = _searchText };
+            var searchField = new TextField("Search") { value = _searchText };
             searchField.AddToClassList("search-field");
-            searchField.textEdition.placeholder = "Search by Id…";
+            searchField.tooltip = "Search by Id";
             searchField.RegisterValueChangedCallback(evt =>
             {
                 _searchText = evt.newValue;
