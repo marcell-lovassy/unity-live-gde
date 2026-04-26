@@ -1,98 +1,159 @@
 # Live Game Data Editor
 
-A Unity Editor tool for editing game data in a **spreadsheet-style interface**, built with **UI Toolkit**.
+**Live Game Data Editor** is a Unity Editor extension for editing ScriptableObject-backed game data in a spreadsheet-style workflow. It gives designers and developers a focused data-editing window inside Unity, with typed rows, validation, import/export tools, and optional Google Sheets synchronization.
 
-Designed for designer workflows. Publish-ready for the Unity Asset Store.
+The project is built with **UI Toolkit** and split into clean runtime/editor assemblies so game data types can stay build-safe while authoring tools remain editor-only.
 
 ---
 
-## Compatibility
+## At A Glance
 
 | | |
 |---|---|
 | **Minimum Unity** | 2022.3 LTS |
 | **Tested on** | Unity 6 (6000.0.x) |
-| **UI System** | UI Toolkit (no IMGUI) |
-| **External dependencies** | None |
+| **UI System** | UI Toolkit |
+| **Primary data model** | ScriptableObject containers |
+| **Runtime assembly** | `LiveGameDataEditor.Runtime` |
+| **Editor assembly** | `LiveGameDataEditor.Editor` |
 
 ---
 
-## Features (MVP)
+## Project Description
 
-- 📋 **Spreadsheet table UI** — editable rows with Id, Value, Multiplier, Enabled columns
-- 📦 **ScriptableObject integration** — pick or create a `GameDataContainer` asset
-- ↩️ **Full Undo/Redo** — every change, add, remove, and import is undoable
-- 📥 **JSON Import / Export** — round-trip your data via `JsonUtility`
-- ☑️ **Multi-row selection** — click, Ctrl+click, Shift+click; remove all selected at once
-- ➕ **Add / Remove rows** inline from the editor window
+Live Game Data Editor is designed for projects where game balance, configuration, and content tables need to be edited quickly without leaving Unity. Instead of hand-editing serialized assets or maintaining separate tooling, users can open a dedicated editor window, select a data container, and work with rows and columns in a familiar table interface.
+
+The runtime layer defines the data contracts: entries, containers, field metadata attributes, and sample typed data. The editor layer handles the authoring experience: asset selection, table rendering, row editing, validation, Undo/Redo, import/export, and Google Sheets integration.
+
+This separation keeps the package practical for production projects: runtime data can ship with the game, while editor workflows stay isolated from player builds.
+
+---
+
+## Features
+
+- **Spreadsheet-style table editing** for ScriptableObject data containers.
+- **Typed data support** through `IGameDataEntry` and `GameDataContainerBase<T>`.
+- **Custom column metadata** with attributes such as `ColumnHeaderAttribute`, `ListFieldAttribute`, and `GoogleSheetsTabAttribute`.
+- **Designer-friendly validation** for issues such as empty IDs and duplicate IDs.
+- **Undo/Redo support** for editor-driven data mutations.
+- **Multi-row selection** for bulk operations.
+- **JSON and CSV import/export** for local data round trips.
+- **Google Sheets integration** for pull/push workflows.
+- **UI Toolkit editor UI** with styling in USS.
+- **Runtime/editor asmdef isolation** to keep builds clean.
 
 ---
 
 ## Getting Started
 
-1. Open the project in **Unity 6** (or 2022.3 LTS+).
-2. From the menu bar choose **Tools > Game Data Editor**.
-3. Click **Create New Data Asset** (or drag an existing `GameDataContainer` into the asset field).
-4. Start editing!
+1. Open the project in **Unity 2022.3 LTS** or **Unity 6**.
+2. From the menu bar, choose **Tools > GDE > Open Editor**.
+3. Select an existing data container or create a compatible ScriptableObject data asset.
+4. Edit rows in the table.
+5. Use validation, import/export, Undo/Redo, or Google Sheets tools as needed.
+
+To create custom data, define an entry type that implements `IGameDataEntry`, then create a concrete container type that inherits from `GameDataContainerBase<T>`.
+
+```csharp
+using UnityEngine;
+
+namespace LiveGameDataEditor
+{
+    [CreateAssetMenu(menuName = "My Game/Enemy Data")]
+    public class EnemyDataContainer : GameDataContainerBase<EnemyDataEntry>
+    {
+    }
+}
+```
 
 ---
 
 ## Project Structure
 
-```
+```text
 Assets/
-  Editor/
-    LiveGameDataEditor/
-      LiveGameDataEditorWindow.cs   ← EditorWindow host
-      GameDataTableView.cs          ← Table VisualElement
-      GameDataRowView.cs            ← Row VisualElement (one per entry)
-      GameDataService.cs            ← Load / save / import / export logic
-      LiveGameDataEditor.uss        ← Stylesheet
-      LiveGameDataEditor.asmdef     ← Editor-only assembly
-  Scripts/
-    LiveGameDataEditor/
-      GameDataEntry.cs              ← [Serializable] data class
-      GameDataContainer.cs          ← ScriptableObject
-      IDataValidator.cs             ← Future validation hook (stub)
-      LiveGameDataRuntime.asmdef    ← Runtime assembly
+  LiveGameDataEditor/
+    Runtime/
+      GameDataEntry.cs
+      GameDataContainer.cs
+      GameDataContainerBase.cs
+      IGameDataEntry.cs
+      IGameDataContainer.cs
+      ColumnHeaderAttribute.cs
+      ListFieldAttribute.cs
+      GoogleSheetsTabAttribute.cs
+      LiveGameDataRuntime.asmdef
+      Samples/
+        EnemyDataEntry.cs
+        EnemyDataContainer.cs
+
+    Editor/
+      LiveGameDataEditorWindow.cs
+      GameDataTableView.cs
+      GameDataRowView.cs
+      GameDataService.cs
+      GameDataValidationService.cs
+      GameDataJsonSerializer.cs
+      GameDataCsvSerializer.cs
+      LiveGameDataEditor.uss
+      LiveGameDataEditor.asmdef
+      GoogleSheets/
+        GoogleSheetsConfig.cs
+        GoogleSheetsService.cs
+        GoogleSheetsSyncPanel.cs
 ```
 
 ---
 
 ## Architecture
 
-```
-GameDataContainer (ScriptableObject)
-    ↓  loaded by
-GameDataService
-    ↓  passed to
-LiveGameDataEditorWindow
-    ↓  passes to
-GameDataTableView
-    ↓  creates
-GameDataRowView  ×N
-    ↓  on change →
-GameDataService.UpdateEntry()  →  Undo.RecordObject + EditorUtility.SetDirty
+```text
+ScriptableObject data container
+    -> GameDataService
+    -> LiveGameDataEditorWindow
+    -> GameDataTableView
+    -> GameDataRowView
+    -> service-mediated update
+    -> Undo.RecordObject + dirty asset
 ```
 
-### Key design decisions
+### Design Principles
 
-- **Row views never mutate the container directly.** Each `GameDataRowView` keeps local copies of field values and emits a cloned `GameDataEntry` on change. `GameDataService.UpdateEntry` then calls `Undo.RecordObject` _before_ committing, ensuring correct undo state capture.
-- **No UXML for MVP** — all layout is C# VisualElement construction; USS handles only styles.
-- **`asmdef` isolation** — the editor assembly references the runtime assembly; the runtime assembly has zero editor-only references, keeping builds clean.
+- **Runtime code stays build-safe.** Runtime files must not reference `UnityEditor`.
+- **Editor code owns authoring behavior.** UI, asset creation, validation, serialization, Undo/Redo, and Google Sheets sync live in the editor assembly.
+- **Rows do not own persistence.** Row views collect edits and send changes through editor services so data mutation remains consistent.
+- **Attributes describe data shape.** Runtime attributes provide metadata for editor display and sheet mapping without pulling editor dependencies into builds.
+- **Import/export is editor-facing.** File operations and external sync are authoring tools, not runtime systems.
 
 ---
 
-## Extension Points (future)
+## Extension Points
 
-| Hook | Where | Purpose |
-|---|---|---|
-| `IDataValidator` | `Assets/Scripts/LiveGameDataEditor/IDataValidator.cs` | Plug in per-field validation |
-| `GameDataService.OnDataImported` | `GameDataService.cs` | React to bulk imports (e.g. Google Sheets sync) |
-| `GameDataService.OnValidateEntry` | `GameDataService.cs` | Called after every field change — pass a validator |
+| Extension point | Purpose |
+|---|---|
+| `IGameDataEntry` | Defines a row type that can be edited in the table. |
+| `GameDataContainerBase<T>` | Defines a ScriptableObject container for typed rows. |
+| `IGameDataValidator` | Adds collection-level validation rules. |
+| `IGameDataSerializer` | Adds alternative serialization formats. |
+| `ColumnHeaderAttribute` | Customizes displayed column names. |
+| `ListFieldAttribute` | Marks list-style fields for editor handling. |
+| `GoogleSheetsTabAttribute` | Maps a data type to a Google Sheets tab. |
+
+---
+
+## Documentation
+
+Agent-facing project documentation is available under `Docs/AgentDoc`:
+
+- `ProjectArchitecture.md`
+- `UnityWorkflow.md`
+- `TestingAndValidation.md`
+- `AssetStoreRelease.md`
+
+These files describe implementation boundaries, Unity workflow rules, validation expectations, and release checks for future coding agents.
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
