@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c6567fa7930913949be482028dbb38da, type: 3}
   m_Name: GoogleSheetsConfig
   m_EditorClassIdentifier: LiveGameDataEditor.Editor::LiveGameDataEditor.GoogleSheets.GoogleSheetsConfig
-  SpreadsheetId: 19OQ8WvO5QUc4hwLMTfr2IqrAtj3ihr7JSHZSoCF38CE
+  SpreadsheetId: 
   HasHeaderRow: 1
   AuthMode: 1
   ApiKey: 
-  OAuthClientId: 431264016583-g40hkrb05nhj0eueuicqu04a4tltp01p.apps.googleusercontent.com
-  OAuthClientSecret: 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
-  ServiceAccountJsonPath: .google/gdetest-d37e1c82bc9a.json
+  OAuthClientId: 
+  OAuthClientSecret: 
+  ServiceAccountJsonPath: 
   AutoPushOnSave: 0
