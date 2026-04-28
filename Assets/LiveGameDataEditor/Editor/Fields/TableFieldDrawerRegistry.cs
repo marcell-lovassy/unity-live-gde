@@ -13,6 +13,8 @@ namespace LiveGameDataEditor.Editor
             new ReferenceFieldDrawer(),
             new ColorStringFieldDrawer(),
             new AssetGuidFieldDrawer(),
+            new FlagsEnumFieldDrawer(),
+            new RangeNumberFieldDrawer(),
             new ListFieldDrawer(),
             new StringFieldDrawer(),
             new IntegerFieldDrawer(),

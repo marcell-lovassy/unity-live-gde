@@ -19,8 +19,10 @@ MonoBehaviour:
     UiColor: "#BFC7D5FF"
     IconGuid: ""
     Health: 90
+    SpawnChance: 65
     Damage: 14
     EnemyType: 0
+    Categories: 1
     DropTags:
     - bones
     - gold
@@ -31,8 +33,10 @@ MonoBehaviour:
     UiColor: "#9DA8B8FF"
     IconGuid: ""
     Health: 140
+    SpawnChance: 45
     Damage: 22
     EnemyType: 1
+    Categories: 1
     DropTags:
     - bones
     - shield
@@ -43,8 +47,10 @@ MonoBehaviour:
     UiColor: "#83B75FFF"
     IconGuid: ""
     Health: 75
+    SpawnChance: 70
     Damage: 16
     EnemyType: 0
+    Categories: 2
     DropTags:
     - gold
     - dagger
@@ -55,8 +61,10 @@ MonoBehaviour:
     UiColor: "#8D5FA8FF"
     IconGuid: ""
     Health: 120
+    SpawnChance: 35
     Damage: 28
     EnemyType: 1
+    Categories: 10
     DropTags:
     - herbs
     - mana
@@ -67,8 +75,10 @@ MonoBehaviour:
     UiColor: "#8B7E6AFF"
     IconGuid: ""
     Health: 280
+    SpawnChance: 20
     Damage: 42
     EnemyType: 1
+    Categories: 4
     DropTags:
     - stone
     - gold
@@ -79,8 +89,10 @@ MonoBehaviour:
     UiColor: "#9B2E46FF"
     IconGuid: ""
     Health: 180
+    SpawnChance: 25
     Damage: 35
     EnemyType: 1
+    Categories: 9
     DropTags:
     - blood
     - cloak
@@ -91,8 +103,10 @@ MonoBehaviour:
     UiColor: "#777777FF"
     IconGuid: ""
     Health: 65
+    SpawnChance: 0
     Damage: 10
     EnemyType: 0
+    Categories: 2
     DropTags:
     - deprecated
     Enabled: 0
@@ -102,8 +116,10 @@ MonoBehaviour:
     UiColor: "#FF6A2AFF"
     IconGuid: ""
     Health: 60
+    SpawnChance: 55
     Damage: 24
     EnemyType: 0
+    Categories: 12
     DropTags:
     - ember
     - gold
@@ -114,8 +130,10 @@ MonoBehaviour:
     UiColor: "#7CC7FFFF"
     IconGuid: ""
     Health: 110
+    SpawnChance: 40
     Damage: 31
     EnemyType: 0
+    Categories: 2
     DropTags:
     - arrow
     - ice_shard
@@ -126,8 +144,10 @@ MonoBehaviour:
     UiColor: "#4E6B5DFF"
     IconGuid: ""
     Health: 220
+    SpawnChance: 18
     Damage: 48
     EnemyType: 1
+    Categories: 9
     DropTags:
     - spellbook
     - mana
@@ -138,8 +158,10 @@ MonoBehaviour:
     UiColor: "#D9B15CFF"
     IconGuid: ""
     Health: 95
+    SpawnChance: 50
     Damage: 44
     EnemyType: 0
+    Categories: 2
     DropTags:
     - poison
     - gold
@@ -150,8 +172,10 @@ MonoBehaviour:
     UiColor: "#A8A8A8FF"
     IconGuid: ""
     Health: 420
+    SpawnChance: 10
     Damage: 55
     EnemyType: 1
+    Categories: 4
     DropTags:
     - iron
     - core
@@ -162,8 +186,10 @@ MonoBehaviour:
     UiColor: "#D43D2FFF"
     IconGuid: ""
     Health: 1200
+    SpawnChance: 2
     Damage: 180
     EnemyType: 2
+    Categories: 20
     DropTags:
     - dragon_scale
     - ruby
@@ -174,8 +200,10 @@ MonoBehaviour:
     UiColor: "#3E2A66FF"
     IconGuid: ""
     Health: 950
+    SpawnChance: 3
     Damage: 135
     EnemyType: 2
+    Categories: 26
     DropTags:
     - crown
     - shadow_orb
@@ -186,8 +214,10 @@ MonoBehaviour:
     UiColor: "#FFFFFFFF"
     IconGuid: ""
     Health: 999
+    SpawnChance: 0
     Damage: 0
     EnemyType: 0
+    Categories: 0
     DropTags:
     - test
     Enabled: 0
