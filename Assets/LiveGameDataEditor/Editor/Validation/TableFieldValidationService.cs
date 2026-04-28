@@ -11,6 +11,7 @@ namespace LiveGameDataEditor.Editor
         public static readonly List<ITableFieldValidator> Validators = new()
         {
             new ReferenceFieldValidator(),
+            new ColorStringFieldValidator(),
         };
 
         public static IEnumerable<ValidationResult> RunAll(IGameDataContainer container)

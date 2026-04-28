@@ -11,6 +11,7 @@ namespace LiveGameDataEditor.Editor
         private static readonly List<ITableFieldDrawer> Drawers = new()
         {
             new ReferenceFieldDrawer(),
+            new ColorStringFieldDrawer(),
             new ListFieldDrawer(),
             new StringFieldDrawer(),
             new IntegerFieldDrawer(),

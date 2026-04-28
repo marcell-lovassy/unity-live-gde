@@ -26,6 +26,10 @@ namespace LiveGameDataEditor
         [TableReference(typeof(WeaponDataContainer))]
         public string WeaponId;
 
+        [ColumnHeader("UI Color")]
+        [TableColor]
+        public string UiColor;
+
         [ColumnHeader("HP")]
         public int Health;
 
@@ -43,6 +47,7 @@ namespace LiveGameDataEditor
             Id          = "new_entry";
             DisplayName = "New Enemy";
             WeaponId    = "";
+            UiColor     = "#FFFFFFFF";
             Health      = 100;
             Damage      = 10;
             EnemyType   = EnemyType.Normal;
