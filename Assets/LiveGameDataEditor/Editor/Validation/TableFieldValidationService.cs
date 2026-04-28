@@ -12,6 +12,7 @@ namespace LiveGameDataEditor.Editor
         {
             new ReferenceFieldValidator(),
             new ColorStringFieldValidator(),
+            new AssetGuidFieldValidator(),
         };
 
         public static IEnumerable<ValidationResult> RunAll(IGameDataContainer container)

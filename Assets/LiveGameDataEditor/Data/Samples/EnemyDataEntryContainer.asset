@@ -17,6 +17,7 @@ MonoBehaviour:
     DisplayName: Skeleton Grunt
     WeaponId: rusty_sword
     UiColor: "#BFC7D5FF"
+    IconGuid: ""
     Health: 90
     Damage: 14
     EnemyType: 0
@@ -28,6 +29,7 @@ MonoBehaviour:
     DisplayName: Skeleton Guard
     WeaponId: iron_sword
     UiColor: "#9DA8B8FF"
+    IconGuid: ""
     Health: 140
     Damage: 22
     EnemyType: 1
@@ -39,6 +41,7 @@ MonoBehaviour:
     DisplayName: Goblin Raider
     WeaponId: steel_dagger
     UiColor: "#83B75FFF"
+    IconGuid: ""
     Health: 75
     Damage: 16
     EnemyType: 0
@@ -50,6 +53,7 @@ MonoBehaviour:
     DisplayName: Forest Witch
     WeaponId: oak_staff
     UiColor: "#8D5FA8FF"
+    IconGuid: ""
     Health: 120
     Damage: 28
     EnemyType: 1
@@ -61,6 +65,7 @@ MonoBehaviour:
     DisplayName: Cave Troll
     WeaponId: stone_club
     UiColor: "#8B7E6AFF"
+    IconGuid: ""
     Health: 280
     Damage: 42
     EnemyType: 1
@@ -72,6 +77,7 @@ MonoBehaviour:
     DisplayName: Vampire Acolyte
     WeaponId: ritual_blade
     UiColor: "#9B2E46FF"
+    IconGuid: ""
     Health: 180
     Damage: 35
     EnemyType: 1
@@ -83,6 +89,7 @@ MonoBehaviour:
     DisplayName: Legacy Bandit
     WeaponId: rusty_sword
     UiColor: "#777777FF"
+    IconGuid: ""
     Health: 65
     Damage: 10
     EnemyType: 0
@@ -93,6 +100,7 @@ MonoBehaviour:
     DisplayName: Fire Imp
     WeaponId: ember_wand
     UiColor: "#FF6A2AFF"
+    IconGuid: ""
     Health: 60
     Damage: 24
     EnemyType: 0
@@ -104,6 +112,7 @@ MonoBehaviour:
     DisplayName: Frost Archer
     WeaponId: frost_bow
     UiColor: "#7CC7FFFF"
+    IconGuid: ""
     Health: 110
     Damage: 31
     EnemyType: 0
@@ -115,6 +124,7 @@ MonoBehaviour:
     DisplayName: Necromancer
     WeaponId: bone_staff
     UiColor: "#4E6B5DFF"
+    IconGuid: ""
     Health: 220
     Damage: 48
     EnemyType: 1
@@ -126,6 +136,7 @@ MonoBehaviour:
     DisplayName: Sand Assassin
     WeaponId: steel_dagger
     UiColor: "#D9B15CFF"
+    IconGuid: ""
     Health: 95
     Damage: 44
     EnemyType: 0
@@ -137,6 +148,7 @@ MonoBehaviour:
     DisplayName: Iron Golem
     WeaponId: iron_hammer
     UiColor: "#A8A8A8FF"
+    IconGuid: ""
     Health: 420
     Damage: 55
     EnemyType: 1
@@ -148,6 +160,7 @@ MonoBehaviour:
     DisplayName: Ancient Dragon
     WeaponId: dragon_breath
     UiColor: "#D43D2FFF"
+    IconGuid: ""
     Health: 1200
     Damage: 180
     EnemyType: 2
@@ -159,6 +172,7 @@ MonoBehaviour:
     DisplayName: Dark Lord
     WeaponId: shadow_scepter
     UiColor: "#3E2A66FF"
+    IconGuid: ""
     Health: 950
     Damage: 135
     EnemyType: 2
@@ -170,6 +184,7 @@ MonoBehaviour:
     DisplayName: Training Dummy
     WeaponId: training_stick
     UiColor: "#FFFFFFFF"
+    IconGuid: ""
     Health: 999
     Damage: 0
     EnemyType: 0

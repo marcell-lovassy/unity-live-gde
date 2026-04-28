@@ -30,6 +30,10 @@ namespace LiveGameDataEditor
         [TableColor]
         public string UiColor;
 
+        [ColumnHeader("Icon")]
+        [TableAsset(typeof(UnityEngine.Sprite))]
+        public string IconGuid;
+
         [ColumnHeader("HP")]
         public int Health;
 
@@ -48,6 +52,7 @@ namespace LiveGameDataEditor
             DisplayName = "New Enemy";
             WeaponId    = "";
             UiColor     = "#FFFFFFFF";
+            IconGuid    = "";
             Health      = 100;
             Damage      = 10;
             EnemyType   = EnemyType.Normal;
