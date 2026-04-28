@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -55,6 +53,7 @@ namespace LiveGameDataEditor.Editor
         private readonly Dictionary<string, object>          _fieldValues   = new();
         private readonly IReadOnlyList<GameDataColumnDefinition> _columns;
         private readonly Type                                _entryType;
+        private readonly IGameDataEntry                      _sourceEntry;
         private readonly List<VisualElement>                 _fieldElements = new();
         private VisualElement                                _dragHandle;
 
@@ -67,6 +66,7 @@ namespace LiveGameDataEditor.Editor
         {
             _columns   = columns;
             _entryType = entry.GetType();
+            _sourceEntry = entry;
 
             // Snapshot initial values via reflection.
             foreach (var col in _columns)
@@ -201,89 +201,19 @@ namespace LiveGameDataEditor.Editor
         private VisualElement CreateField(GameDataColumnDefinition col, int colIndex)
         {
             string name = col.Field.Name;
-            VisualElement field;
+            var context = new TableFieldContext(
+                _sourceEntry,
+                _columns,
+                col,
+                _fieldValues[name],
+                value =>
+                {
+                    _fieldValues[name] = value;
+                    OnEntryChanged?.Invoke(MakeEntry());
+                },
+                () => { });
 
-            if (col.IsList)
-            {
-                string display = GameDataColumnDefinition.ListFieldToString(_fieldValues[name], col);
-                var tf = new TextField { value = display };
-                tf.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = col.ParseListField(evt.newValue);
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = tf;
-            }
-            else if (col.IsString)
-            {
-                var tf = new TextField { value = (string)(_fieldValues[name] ?? "") };
-                tf.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = tf;
-            }
-            else if (col.IsInt)
-            {
-                var intf = new IntegerField { value = (int)_fieldValues[name] };
-                intf.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = intf;
-            }
-            else if (col.IsFloat)
-            {
-                var ff = new FloatField { value = (float)_fieldValues[name] };
-                ff.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = ff;
-            }
-            else if (col.IsBool)
-            {
-                var toggle = new Toggle { value = (bool)_fieldValues[name] };
-                toggle.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = toggle;
-            }
-            else if (col.IsEnum)
-            {
-                // GetValue returns a boxed enum; cast via Enum base type.
-                var enumVal = (_fieldValues[name] as Enum)
-                    ?? (Enum)Enum.GetValues(col.FieldType).GetValue(0);
-                var ef = new EnumField(enumVal);
-                ef.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = ef;
-            }
-            else if (col.IsUnityObject)
-            {
-                var objVal = _fieldValues[name] as UnityEngine.Object;
-                var of = new ObjectField { objectType = col.FieldType, value = objVal };
-                of.RegisterValueChangedCallback(evt =>
-                {
-                    _fieldValues[name] = evt.newValue;
-                    OnEntryChanged?.Invoke(MakeEntry());
-                });
-                field = of;
-            }
-            else
-            {
-                // Unsupported type: read-only label.
-                field = new Label(_fieldValues[name]?.ToString() ?? "");
-                field.AddToClassList("col-readonly");
-            }
+            var field = TableFieldDrawerRegistry.CreateCell(context);
 
             RegisterKeyboardNavigation(field, colIndex);
             return field;
