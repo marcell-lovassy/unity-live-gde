@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 42b77d920fa34cd6ade036269c013374, type: 3}
+  m_Name: WeaponDataContainer
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.WeaponDataContainer
+  Entries:
+  - Id: rusty_sword
+    DisplayName: Rusty Sword
+    Damage: 8
+  - Id: iron_sword
+    DisplayName: Iron Sword
+    Damage: 16
+  - Id: steel_dagger
+    DisplayName: Steel Dagger
+    Damage: 13
+  - Id: oak_staff
+    DisplayName: Oak Staff
+    Damage: 20
+  - Id: stone_club
+    DisplayName: Stone Club
+    Damage: 32
+  - Id: ritual_blade
+    DisplayName: Ritual Blade
+    Damage: 28
+  - Id: ember_wand
+    DisplayName: Ember Wand
+    Damage: 22
+  - Id: frost_bow
+    DisplayName: Frost Bow
+    Damage: 30
+  - Id: bone_staff
+    DisplayName: Bone Staff
+    Damage: 42
+  - Id: iron_hammer
+    DisplayName: Iron Hammer
+    Damage: 48
+  - Id: dragon_breath
+    DisplayName: Dragon Breath
+    Damage: 175
+  - Id: shadow_scepter
+    DisplayName: Shadow Scepter
+    Damage: 125
+  - Id: training_stick
+    DisplayName: Training Stick
+    Damage: 1

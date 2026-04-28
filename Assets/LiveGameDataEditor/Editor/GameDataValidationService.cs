@@ -26,7 +26,9 @@ namespace LiveGameDataEditor.Editor
         public static Dictionary<int, List<ValidationResult>> RunAll(IGameDataContainer container)
         {
             var entries = container.GetEntries().Cast<IGameDataEntry>().ToList();
-            return RunAll(entries);
+            var results = RunAll(entries);
+            AddResults(results, TableFieldValidationService.RunAll(container));
+            return results;
         }
 
         /// <summary>
@@ -40,18 +42,25 @@ namespace LiveGameDataEditor.Editor
 
             foreach (var validator in Validators)
             {
-                foreach (var result in validator.Validate(entries))
-                {
-                    if (!results.TryGetValue(result.RowIndex, out var list))
-                    {
-                        list = new List<ValidationResult>();
-                        results[result.RowIndex] = list;
-                    }
-                    list.Add(result);
-                }
+                AddResults(results, validator.Validate(entries));
             }
 
             return results;
+        }
+
+        private static void AddResults(
+            Dictionary<int, List<ValidationResult>> results,
+            IEnumerable<ValidationResult> newResults)
+        {
+            foreach (var result in newResults)
+            {
+                if (!results.TryGetValue(result.RowIndex, out var list))
+                {
+                    list = new List<ValidationResult>();
+                    results[result.RowIndex] = list;
+                }
+                list.Add(result);
+            }
         }
     }
 }

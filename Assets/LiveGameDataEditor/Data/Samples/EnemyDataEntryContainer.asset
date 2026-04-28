@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.EnemyDataContainer
   Entries:
   - Id: skeleton_grunt
+    DisplayName: Skeleton Grunt
+    WeaponId: rusty_sword
     Health: 90
     Damage: 14
     EnemyType: 0
@@ -22,6 +24,8 @@ MonoBehaviour:
     - gold
     Enabled: 1
   - Id: skeleton_guard
+    DisplayName: Skeleton Guard
+    WeaponId: iron_sword
     Health: 140
     Damage: 22
     EnemyType: 1
@@ -30,6 +34,8 @@ MonoBehaviour:
     - shield
     Enabled: 1
   - Id: goblin_raider
+    DisplayName: Goblin Raider
+    WeaponId: steel_dagger
     Health: 75
     Damage: 16
     EnemyType: 0
@@ -38,6 +44,8 @@ MonoBehaviour:
     - dagger
     Enabled: 1
   - Id: forest_witch
+    DisplayName: Forest Witch
+    WeaponId: oak_staff
     Health: 120
     Damage: 28
     EnemyType: 1
@@ -46,6 +54,8 @@ MonoBehaviour:
     - mana
     Enabled: 1
   - Id: cave_troll
+    DisplayName: Cave Troll
+    WeaponId: stone_club
     Health: 280
     Damage: 42
     EnemyType: 1
@@ -54,6 +64,8 @@ MonoBehaviour:
     - gold
     Enabled: 1
   - Id: vampire_acolyte
+    DisplayName: Vampire Acolyte
+    WeaponId: ritual_blade
     Health: 180
     Damage: 35
     EnemyType: 1
@@ -62,6 +74,8 @@ MonoBehaviour:
     - cloak
     Enabled: 1
   - Id: legacy_bandit
+    DisplayName: Legacy Bandit
+    WeaponId: rusty_sword
     Health: 65
     Damage: 10
     EnemyType: 0
@@ -69,6 +83,8 @@ MonoBehaviour:
     - deprecated
     Enabled: 0
   - Id: fire_imp
+    DisplayName: Fire Imp
+    WeaponId: ember_wand
     Health: 60
     Damage: 24
     EnemyType: 0
@@ -77,6 +93,8 @@ MonoBehaviour:
     - gold
     Enabled: 1
   - Id: frost_archer
+    DisplayName: Frost Archer
+    WeaponId: frost_bow
     Health: 110
     Damage: 31
     EnemyType: 0
@@ -85,6 +103,8 @@ MonoBehaviour:
     - ice_shard
     Enabled: 1
   - Id: necromancer
+    DisplayName: Necromancer
+    WeaponId: bone_staff
     Health: 220
     Damage: 48
     EnemyType: 1
@@ -93,6 +113,8 @@ MonoBehaviour:
     - mana
     Enabled: 1
   - Id: sand_assassin
+    DisplayName: Sand Assassin
+    WeaponId: steel_dagger
     Health: 95
     Damage: 44
     EnemyType: 0
@@ -101,6 +123,8 @@ MonoBehaviour:
     - gold
     Enabled: 1
   - Id: iron_golem
+    DisplayName: Iron Golem
+    WeaponId: iron_hammer
     Health: 420
     Damage: 55
     EnemyType: 1
@@ -109,6 +133,8 @@ MonoBehaviour:
     - core
     Enabled: 1
   - Id: ancient_dragon
+    DisplayName: Ancient Dragon
+    WeaponId: dragon_breath
     Health: 1200
     Damage: 180
     EnemyType: 2
@@ -117,6 +143,8 @@ MonoBehaviour:
     - ruby
     Enabled: 1
   - Id: dark_lord
+    DisplayName: Dark Lord
+    WeaponId: shadow_scepter
     Health: 950
     Damage: 135
     EnemyType: 2
@@ -125,6 +153,8 @@ MonoBehaviour:
     - shadow_orb
     Enabled: 1
   - Id: training_dummy
+    DisplayName: Training Dummy
+    WeaponId: training_stick
     Health: 999
     Damage: 0
     EnemyType: 0
