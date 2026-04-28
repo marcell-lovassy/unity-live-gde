@@ -13,33 +13,121 @@ MonoBehaviour:
   m_Name: EnemyDataEntryContainer
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.EnemyDataContainer
   Entries:
-  - Id: Skeleton
-    Health: 150
-    Damage: 50
+  - Id: skeleton_grunt
+    Health: 90
+    Damage: 14
+    EnemyType: 0
+    DropTags:
+    - bones
+    - gold
+    Enabled: 1
+  - Id: skeleton_guard
+    Health: 140
+    Damage: 22
     EnemyType: 1
     DropTags:
-    - gold
-    - health
+    - bones
+    - shield
     Enabled: 1
-  - Id: Raider
-    Health: 80
-    Damage: 12
+  - Id: goblin_raider
+    Health: 75
+    Damage: 16
     EnemyType: 0
     DropTags:
     - gold
+    - dagger
     Enabled: 1
-  - Id: Boss_1
-    Health: 500
-    Damage: 200
-    EnemyType: 2
+  - Id: forest_witch
+    Health: 120
+    Damage: 28
+    EnemyType: 1
     DropTags:
-    - gold
-    - sword
+    - herbs
+    - mana
     Enabled: 1
-  - Id: Vampire
-    Health: 300
-    Damage: 30
+  - Id: cave_troll
+    Health: 280
+    Damage: 42
+    EnemyType: 1
+    DropTags:
+    - stone
+    - gold
+    Enabled: 1
+  - Id: vampire_acolyte
+    Health: 180
+    Damage: 35
     EnemyType: 1
     DropTags:
     - blood
+    - cloak
     Enabled: 1
+  - Id: legacy_bandit
+    Health: 65
+    Damage: 10
+    EnemyType: 0
+    DropTags:
+    - deprecated
+    Enabled: 0
+  - Id: fire_imp
+    Health: 60
+    Damage: 24
+    EnemyType: 0
+    DropTags:
+    - ember
+    - gold
+    Enabled: 1
+  - Id: frost_archer
+    Health: 110
+    Damage: 31
+    EnemyType: 0
+    DropTags:
+    - arrow
+    - ice_shard
+    Enabled: 1
+  - Id: necromancer
+    Health: 220
+    Damage: 48
+    EnemyType: 1
+    DropTags:
+    - spellbook
+    - mana
+    Enabled: 1
+  - Id: sand_assassin
+    Health: 95
+    Damage: 44
+    EnemyType: 0
+    DropTags:
+    - poison
+    - gold
+    Enabled: 1
+  - Id: iron_golem
+    Health: 420
+    Damage: 55
+    EnemyType: 1
+    DropTags:
+    - iron
+    - core
+    Enabled: 1
+  - Id: ancient_dragon
+    Health: 1200
+    Damage: 180
+    EnemyType: 2
+    DropTags:
+    - dragon_scale
+    - ruby
+    Enabled: 1
+  - Id: dark_lord
+    Health: 950
+    Damage: 135
+    EnemyType: 2
+    DropTags:
+    - crown
+    - shadow_orb
+    Enabled: 1
+  - Id: training_dummy
+    Health: 999
+    Damage: 0
+    EnemyType: 0
+    DropTags:
+    - test
+    Enabled: 0

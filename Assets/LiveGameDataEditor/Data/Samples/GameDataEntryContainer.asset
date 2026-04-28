@@ -25,3 +25,7 @@ MonoBehaviour:
     Value: 0
     Multiplier: 1
     Enabled: 0
+  - Id: starting_health
+    Value: 1000
+    Multiplier: 1
+    Enabled: 1
