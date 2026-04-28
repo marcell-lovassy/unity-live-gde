@@ -311,6 +311,19 @@
     background-color: rgba(100, 50, 130, 0.55);
 }
 
+/* Cell validation states */
+.table-cell--invalid {
+    border-left-width: 3px;
+    border-left-color: #e05d5d;
+    background-color: rgba(180, 40, 40, 0.22);
+}
+
+.table-cell--warning {
+    border-left-width: 3px;
+    border-left-color: #d6a94a;
+    background-color: rgba(180, 140, 20, 0.18);
+}
+
 /* Remove margin/border from inline fields for compactness */
 .table-row TextField,
 .table-row IntegerField,

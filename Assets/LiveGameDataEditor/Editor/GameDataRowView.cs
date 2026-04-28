@@ -55,6 +55,8 @@ namespace LiveGameDataEditor.Editor
         private readonly Type                                _entryType;
         private readonly IGameDataEntry                      _sourceEntry;
         private readonly List<VisualElement>                 _fieldElements = new();
+        private readonly Dictionary<string, VisualElement>    _fieldElementsByName = new();
+        private readonly Dictionary<VisualElement, string>    _baseTooltips = new();
         private VisualElement                                _dragHandle;
 
         // ── Constructor ────────────────────────────────────────────────────────────
@@ -118,6 +120,31 @@ namespace LiveGameDataEditor.Editor
             tooltip = (results != null && results.Count > 0)
                 ? string.Join("\n", results.Select(r => $"[{r.Severity}] {r.Message}"))
                 : string.Empty;
+
+            ClearCellValidationState();
+
+            if (results == null || results.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var group in results
+                         .Where(result => !string.IsNullOrEmpty(result.FieldName))
+                         .GroupBy(result => result.FieldName))
+            {
+                if (!_fieldElementsByName.TryGetValue(group.Key, out var field))
+                {
+                    continue;
+                }
+
+                var cellResults = group.ToList();
+                bool cellHasError = cellResults.Any(r => r.Severity == ValidationSeverity.Error);
+                bool cellHasWarning = cellResults.Any(r => r.Severity == ValidationSeverity.Warning);
+
+                field.EnableInClassList("table-cell--invalid", cellHasError);
+                field.EnableInClassList("table-cell--warning", cellHasWarning && !cellHasError);
+                field.tooltip = string.Join("\n", cellResults.Select(r => $"[{r.Severity}] {r.Message}"));
+            }
         }
 
         /// <summary>Moves keyboard focus to the field at the given column index.</summary>
@@ -195,6 +222,8 @@ namespace LiveGameDataEditor.Editor
                 ApplySizing(field, col);
                 Add(field);
                 _fieldElements.Add(field);
+                _fieldElementsByName[col.Field.Name] = field;
+                _baseTooltips[field] = field.tooltip;
             }
         }
 
@@ -274,6 +303,18 @@ namespace LiveGameDataEditor.Editor
             {
                 el.style.flexGrow   = col.FlexGrow;
                 el.style.flexShrink = 1;
+            }
+        }
+
+        private void ClearCellValidationState()
+        {
+            foreach (var field in _fieldElements)
+            {
+                field.RemoveFromClassList("table-cell--invalid");
+                field.RemoveFromClassList("table-cell--warning");
+                field.tooltip = _baseTooltips.TryGetValue(field, out var baseTooltip)
+                    ? baseTooltip
+                    : string.Empty;
             }
         }
 
