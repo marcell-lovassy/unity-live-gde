@@ -46,6 +46,8 @@ namespace LiveGameDataEditor.Editor
         private IReadOnlyList<GameDataColumnDefinition> _validationColumns;
         private List<IGameData> _validationEntries;
         private int _validationGeneration;
+        private int _validationInProgressKey = int.MinValue;
+        private int _validationInProgressRowCount = -1;
         private int _validationRowIndex;
         private Dictionary<int, List<ValidationResult>> _validationResults;
 
@@ -377,14 +379,26 @@ namespace LiveGameDataEditor.Editor
         {
             if (_container == null) return;
 
-            var generation = ++_validationGeneration;
             var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
+            var entries = _container.GetEntries();
+            var cacheKey = GetContainerCacheKey(_container);
+            if (_validationEntries != null &&
+                _validationInProgressKey == cacheKey &&
+                _validationInProgressRowCount == entries.Count)
+                return;
+
+            var generation = ++_validationGeneration;
             _dataTypeLabel.text = $"{displayName} - Validating...";
 
-            var entries = _container.GetEntries();
             if (TryApplyCachedValidation(_container, entries.Count))
             {
                 _dataTypeLabel.text = displayName;
+                _validationEntries = null;
+                _validationColumns = null;
+                _validationResults = null;
+                _validationRowIndex = 0;
+                _validationInProgressKey = int.MinValue;
+                _validationInProgressRowCount = -1;
                 return;
             }
 
@@ -392,6 +406,8 @@ namespace LiveGameDataEditor.Editor
             _validationColumns = GameDataColumnDefinition.FromType(_container.EntryType);
             _validationResults = GameDataValidationService.RunAll(_validationEntries);
             _validationRowIndex = 0;
+            _validationInProgressKey = cacheKey;
+            _validationInProgressRowCount = entries.Count;
 
             _contentArea.schedule.Execute(() => ValidateBatch(generation)).ExecuteLater(0);
         }
@@ -403,6 +419,8 @@ namespace LiveGameDataEditor.Editor
             _validationColumns = null;
             _validationResults = null;
             _validationRowIndex = 0;
+            _validationInProgressKey = int.MinValue;
+            _validationInProgressRowCount = -1;
         }
 
         private void ValidateBatch(int generation)
@@ -447,6 +465,8 @@ namespace LiveGameDataEditor.Editor
             _validationColumns = null;
             _validationResults = null;
             _validationRowIndex = 0;
+            _validationInProgressKey = int.MinValue;
+            _validationInProgressRowCount = -1;
         }
 
         private void ValidateRow(int rowIndex)
@@ -637,15 +657,35 @@ namespace LiveGameDataEditor.Editor
         private void OnDuplicateEntries(List<int> indices)
         {
             GameDataService.DuplicateEntries(_container, indices);
-            InvalidateCachedData(_container);
-            RefreshView();
+            InvalidateValidationCache(_container);
+
+            if (!_tableView.TryDuplicateEntries(indices))
+            {
+                InvalidateCachedData(_container);
+                RefreshView();
+                return;
+            }
+
+            _selectionBar.UpdateInfo(_container);
+            if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
+            StartValidation();
         }
 
         private void OnMoveEntry(int fromIndex, int insertBefore)
         {
             GameDataService.MoveEntry(_container, fromIndex, insertBefore);
-            InvalidateCachedData(_container);
-            RefreshView();
+            InvalidateValidationCache(_container);
+
+            if (!_tableView.TryMoveEntry(fromIndex, insertBefore))
+            {
+                InvalidateCachedData(_container);
+                RefreshView();
+                return;
+            }
+
+            _selectionBar.UpdateInfo(_container);
+            if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
+            StartValidation();
         }
     }
 }

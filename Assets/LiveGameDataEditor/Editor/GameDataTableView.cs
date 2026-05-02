@@ -25,6 +25,9 @@ namespace LiveGameDataEditor.Editor
         private const int MinRowsPerBatch = 4;
         private const int MaxRowsPerBatch = 40;
         private const long MaxBatchMilliseconds = 8;
+        private const int SearchDebounceMilliseconds = 150;
+        private const int MinViewRowsPerBatch = 12;
+        private const int MaxViewRowsPerBatch = 120;
         private const int MaxCachedTableCount = 4;
 
         // Column width overrides (set when user drags a resize handle), keyed by field name.
@@ -80,10 +83,14 @@ namespace LiveGameDataEditor.Editor
 
         // Drag-to-reorder state
         private bool _isDragging;
+        private bool _isApplyingView;
         private bool _isPopulating;
         private IList _pendingEntries;
         private int _pendingEntryIndex;
+        private int _pendingVisibleIndex;
+        private List<int> _pendingVisibleOrder;
         private int _populateGeneration;
+        private int _viewGeneration;
         private VisualElement _footer;
         private ScrollView _scrollView;
 
@@ -189,12 +196,60 @@ namespace LiveGameDataEditor.Editor
         {
             var generation = ++_populateGeneration;
             _isPopulating = false;
+            _isApplyingView = false;
             _pendingEntries = null;
             _pendingEntryIndex = 0;
-            HideLoading();
+            _pendingVisibleOrder = null;
+            _pendingVisibleIndex = 0;
 
             _container = container;
             _selectedIndices.Clear();
+
+            if (container == null)
+            {
+                HideLoading();
+                ClearTableState();
+                _columns = new List<GameDataColumnDefinition>();
+                RebuildStatsRow();
+                _headerRow.style.width = 0;
+                _scrollView.contentContainer.style.minWidth = 0;
+                if (_statsRow != null) _statsRow.style.width = 0;
+                return;
+            }
+
+            _pendingEntries = container.GetEntries();
+            _isPopulating = true;
+            ShowLoading(0, _pendingEntries.Count);
+            schedule.Execute(() => BeginPopulate(container, generation)).ExecuteLater(0);
+        }
+
+        private void BeginPopulate(IGameDataContainer container, int generation)
+        {
+            if (generation != _populateGeneration || _container != container || _pendingEntries == null) return;
+
+            ClearTableState();
+
+            // Rebuild columns from the container's entry type
+            _columns = GameDataColumnDefinition.FromType(container.EntryType);
+            RebuildHeader();
+            RebuildStatsRow();
+
+            if (TryUseCachedRows(container, _pendingEntries))
+            {
+                _isPopulating = false;
+                HideLoading();
+                ApplyFilterAndSort();
+                OnPopulateProgress?.Invoke(_rows.Count, _rows.Count);
+                OnPopulateComplete?.Invoke();
+                return;
+            }
+
+            _pendingEntryIndex = 0;
+            schedule.Execute(() => PopulateBatch(generation)).ExecuteLater(0);
+        }
+
+        private void ClearTableState()
+        {
             _rows.Clear();
             _rowIndices.Clear();
             _scrollView.Clear();
@@ -204,35 +259,6 @@ namespace LiveGameDataEditor.Editor
             _statsCells.Clear();
             _computedColumnWidths.Clear();
             _visibleIndices.Clear();
-
-            if (container == null)
-            {
-                _columns = new List<GameDataColumnDefinition>();
-                RebuildStatsRow();
-                _headerRow.style.width = 0;
-                _scrollView.contentContainer.style.minWidth = 0;
-                if (_statsRow != null) _statsRow.style.width = 0;
-                return;
-            }
-
-            // Rebuild columns from the container's entry type
-            _columns = GameDataColumnDefinition.FromType(container.EntryType);
-            RebuildHeader();
-            RebuildStatsRow();
-
-            _pendingEntries = container.GetEntries();
-            if (TryUseCachedRows(container, _pendingEntries))
-            {
-                ApplyFilterAndSort();
-                OnPopulateProgress?.Invoke(_rows.Count, _rows.Count);
-                OnPopulateComplete?.Invoke();
-                return;
-            }
-
-            _pendingEntryIndex = 0;
-            _isPopulating = true;
-            ShowLoading(0, _pendingEntries.Count);
-            schedule.Execute(() => PopulateBatch(generation)).ExecuteLater(0);
         }
 
         /// <summary>
@@ -246,15 +272,19 @@ namespace LiveGameDataEditor.Editor
 
             if (!applyImmediately || _isPopulating) return;
 
-            ApplyFilterAndSort();
+            ScheduleApplyFilterAndSort(SearchDebounceMilliseconds);
         }
 
         public void CancelPopulation()
         {
             _populateGeneration++;
+            _viewGeneration++;
             _isPopulating = false;
+            _isApplyingView = false;
             _pendingEntries = null;
             _pendingEntryIndex = 0;
+            _pendingVisibleOrder = null;
+            _pendingVisibleIndex = 0;
             HideLoading();
         }
 
@@ -274,7 +304,7 @@ namespace LiveGameDataEditor.Editor
 
         public bool TryAppendLatestEntry()
         {
-            if (_container == null || _isPopulating) return false;
+            if (_container == null || _isPopulating || _isApplyingView) return false;
 
             var entries = _container.GetEntries();
             if (entries.Count != _rows.Count + 1) return false;
@@ -303,7 +333,8 @@ namespace LiveGameDataEditor.Editor
 
         public bool TryRemoveEntries(List<int> indices)
         {
-            if (_container == null || _isPopulating || indices == null || indices.Count == 0) return false;
+            if (_container == null || _isPopulating || _isApplyingView || indices == null || indices.Count == 0)
+                return false;
 
             var unique = new List<int>();
             foreach (var index in indices)
@@ -347,6 +378,107 @@ namespace LiveGameDataEditor.Editor
 
             StoreCurrentRowsInCache();
             OnSelectionChanged?.Invoke(new List<int>());
+            return true;
+        }
+
+        public bool TryDuplicateEntries(List<int> indices)
+        {
+            if (_container == null || _isPopulating || _isApplyingView || indices == null || indices.Count == 0)
+                return false;
+
+            var unique = GetValidUniqueIndices(indices);
+            if (unique.Count == 0) return false;
+
+            var entries = _container.GetEntries();
+            if (entries.Count != _rows.Count + unique.Count) return false;
+
+            unique.Sort();
+            var firstChangedIndex = unique[0] + 1;
+            GameDataRowView lastCloneRow = null;
+            var insertedBefore = 0;
+
+            foreach (var originalIndex in unique)
+            {
+                var cloneIndex = originalIndex + 1 + insertedBefore;
+                if (cloneIndex < 0 || cloneIndex >= entries.Count) return false;
+
+                var row = CreateRow(cloneIndex, (IGameData)entries[cloneIndex]);
+                _rows.Insert(cloneIndex, row);
+                ApplyCurrentColumnWidths(row);
+                lastCloneRow = row;
+
+                if (CanAppendRowsDuringPopulate())
+                {
+                    if (cloneIndex >= _scrollView.childCount)
+                        _scrollView.Add(row);
+                    else
+                        _scrollView.Insert(cloneIndex, row);
+                }
+
+                insertedBefore++;
+            }
+
+            _selectedIndices.Clear();
+            RefreshRowIndices(firstChangedIndex);
+
+            if (CanAppendRowsDuringPopulate())
+            {
+                RebuildSequentialVisibleIndices();
+                UpdateStatsRow();
+                RefreshDragHandles();
+            }
+            else
+            {
+                ApplyFilterAndSort();
+            }
+
+            StoreCurrentRowsInCache();
+            OnSelectionChanged?.Invoke(new List<int>());
+            ScrollToRow(lastCloneRow);
+            return true;
+        }
+
+        public bool TryMoveEntry(int fromIndex, int insertBefore)
+        {
+            if (_container == null || _isPopulating || _isApplyingView) return false;
+            if (fromIndex < 0 || fromIndex >= _rows.Count) return false;
+
+            var entries = _container.GetEntries();
+            if (entries.Count != _rows.Count) return false;
+
+            insertBefore = Mathf.Clamp(insertBefore, 0, _rows.Count);
+            if (insertBefore == fromIndex || insertBefore == fromIndex + 1) return true;
+
+            var finalIndex = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+            finalIndex = Mathf.Clamp(finalIndex, 0, _rows.Count - 1);
+
+            var row = _rows[fromIndex];
+            _rows.RemoveAt(fromIndex);
+            _rows.Insert(finalIndex, row);
+
+            _selectedIndices.Clear();
+            RefreshRowIndices(Mathf.Min(fromIndex, finalIndex));
+
+            if (CanAppendRowsDuringPopulate())
+            {
+                row.RemoveFromHierarchy();
+                if (finalIndex >= _scrollView.childCount)
+                    _scrollView.Add(row);
+                else
+                    _scrollView.Insert(finalIndex, row);
+
+                RebuildSequentialVisibleIndices();
+                UpdateStatsRow();
+                RefreshDragHandles();
+            }
+            else
+            {
+                ApplyFilterAndSort();
+            }
+
+            StoreCurrentRowsInCache();
+            OnSelectionChanged?.Invoke(new List<int>());
+            ScrollToRow(row);
             return true;
         }
 
@@ -503,6 +635,24 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
+        private List<int> GetValidUniqueIndices(List<int> indices)
+        {
+            var unique = new List<int>();
+            foreach (var index in indices)
+            {
+                if (index < 0 || index >= _rows.Count || unique.Contains(index)) continue;
+                unique.Add(index);
+            }
+
+            return unique;
+        }
+
+        private void RebuildSequentialVisibleIndices()
+        {
+            _visibleIndices.Clear();
+            for (var i = 0; i < _rows.Count; i++) _visibleIndices.Add(i);
+        }
+
         private void ApplyCurrentColumnWidths(GameDataRowView row)
         {
             if (row == null || _computedColumnWidths.Count == 0) return;
@@ -648,7 +798,21 @@ namespace LiveGameDataEditor.Editor
 
         private void ApplyFilterAndSort()
         {
+            ScheduleApplyFilterAndSort(0);
+        }
+
+        private void ScheduleApplyFilterAndSort(int delayMilliseconds)
+        {
             if (_isPopulating) return;
+
+            var generation = ++_viewGeneration;
+            schedule.Execute(() => BeginApplyFilterAndSort(generation))
+                .ExecuteLater(Mathf.Max(0, delayMilliseconds));
+        }
+
+        private void BeginApplyFilterAndSort(int generation)
+        {
+            if (generation != _viewGeneration || _isPopulating) return;
             if (_container == null) return;
 
             var entries = _container.GetEntries();
@@ -691,18 +855,62 @@ namespace LiveGameDataEditor.Editor
                     });
             }
 
-            // Step 3: repopulate ScrollView with the ordered, filtered rows
+            ApplyVisibleOrder(visible, generation);
+        }
+
+        private void ApplyVisibleOrder(List<int> visible, int generation)
+        {
+            if (generation != _viewGeneration || visible == null) return;
+
+            _isApplyingView = true;
+            _pendingVisibleOrder = visible;
+            _pendingVisibleIndex = 0;
             _scrollView.Clear();
-            foreach (var i in visible) _scrollView.Add(_rows[i]);
-
-            // Step 4: update visible index cache and stats
             _visibleIndices.Clear();
-            _visibleIndices.AddRange(visible);
-            UpdateStatsRow();
+            schedule.Execute(() => ApplyVisibleOrderBatch(generation)).ExecuteLater(0);
+        }
 
-            // Step 5: update drag handle visibility (only enabled when no sort/filter is active)
+        private void ApplyVisibleOrderBatch(int generation)
+        {
+            if (generation != _viewGeneration || !_isApplyingView || _pendingVisibleOrder == null) return;
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var addedThisBatch = 0;
+            var total = _pendingVisibleOrder.Count;
+
+            while (_pendingVisibleIndex < total &&
+                   (addedThisBatch < MinViewRowsPerBatch ||
+                    (addedThisBatch < MaxViewRowsPerBatch &&
+                     stopwatch.ElapsedMilliseconds < MaxBatchMilliseconds)))
+            {
+                var rowIndex = _pendingVisibleOrder[_pendingVisibleIndex];
+                _scrollView.Add(_rows[rowIndex]);
+                _visibleIndices.Add(rowIndex);
+                _pendingVisibleIndex++;
+                addedThisBatch++;
+            }
+
+            if (_pendingVisibleIndex < total)
+            {
+                schedule.Execute(() => ApplyVisibleOrderBatch(generation)).ExecuteLater(0);
+                return;
+            }
+
+            FinishApplyVisibleOrder(generation);
+        }
+
+        private void FinishApplyVisibleOrder(int generation)
+        {
+            if (generation != _viewGeneration) return;
+
+            _isApplyingView = false;
+            _pendingVisibleOrder = null;
+            _pendingVisibleIndex = 0;
+            UpdateStatsRow();
             RefreshDragHandles();
-            ScheduleColumnLayout();
+
+            if (_computedColumnWidths.Count == 0)
+                ScheduleColumnLayout();
         }
 
         private void ScheduleColumnLayout(bool resetHorizontalScroll = false)
