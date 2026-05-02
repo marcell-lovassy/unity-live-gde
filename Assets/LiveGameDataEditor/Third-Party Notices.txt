@@ -9,27 +9,6 @@ Used for JSON import/export and Google Sheets REST payload handling.
 
 Unity distributes this package under the Unity Companion License for Unity-dependent projects. The package contains Newtonsoft.Json and related Unity adaptations distributed under MIT licenses. See the Unity Package Manager package metadata and third-party notices for complete license text.
 
-com.unity.ugui 2.0.0
-
-Used by the included runtime sample scene for Canvas layout and TextMesh Pro UI components.
-
-Unity distributes uGUI under the Unity Companion License for Unity-dependent projects. See the Unity Package Manager package metadata for complete license text.
-
-Included TextMesh Pro Essentials Assets
----------------------------------------
-
-The package includes TextMesh Pro Essentials assets under Assets/TextMesh Pro so the runtime sample scene and SampleEnemy prefab work immediately after import.
-
-Included TMP settings, shaders, materials, and related Unity-provided assets are supplied through Unity's TextMesh Pro/uGUI workflow for Unity projects.
-
-LiberationSans font files are included with the TextMesh Pro Essentials import and are licensed under the SIL Open Font License, Version 1.1. The full license text is included at:
-
-Assets/TextMesh Pro/Fonts/LiberationSans - OFL.txt
-
-EmojiOne sample sprite assets are included with the attribution file supplied by the TextMesh Pro Essentials import. The attribution file is included at:
-
-Assets/TextMesh Pro/Sprites/EmojiOne Attribution.txt
-
 Google Sheets API
 -----------------
 

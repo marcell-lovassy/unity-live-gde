@@ -1,4 +1,3 @@
-using TMPro;
 using UnityEngine;
 
 namespace LiveGameDataEditor
@@ -12,10 +11,6 @@ namespace LiveGameDataEditor
         [SerializeField] private EnemyDataController enemyDataController;
         [SerializeField] private WeaponDataController weaponDataController;
         [SerializeField] private SpriteRenderer targetRenderer;
-
-        [Header("UI")] [SerializeField] private TextMeshProUGUI idText;
-        [SerializeField] private TextMeshProUGUI healthText;
-        [SerializeField] private TextMeshProUGUI damageText;
 
         public string EnemyId => enemyId;
         private EnemyData EnemyData { get; set; }
@@ -34,20 +29,7 @@ namespace LiveGameDataEditor
                 : null;
 
             ApplyColor();
-            UpdateUI();
-        }
-
-        private void UpdateUI()
-        {
-            if (EnemyData == null)
-            {
-                Debug.LogWarning($"{enemyId}: missing enemy data");
-                return;
-            }
-
-            idText.SetText(EnemyData.DisplayName);
-            healthText.SetText($"Hp: {EnemyData.Health}");
-            damageText.SetText($"Dmg: {EnemyData.Damage}");
+            if (EnemyData == null) Debug.LogWarning($"{enemyId}: missing enemy data");
         }
 
         public string GetDisplaySummary()

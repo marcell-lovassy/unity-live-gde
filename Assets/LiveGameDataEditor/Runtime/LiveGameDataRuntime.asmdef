@@ -1,9 +1,7 @@
 {
   "name": "LiveGameDataEditor.Runtime",
   "rootNamespace": "LiveGameDataEditor",
-  "references": [
-    "Unity.TextMeshPro"
-  ],
+  "references": [],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,

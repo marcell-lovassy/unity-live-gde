@@ -19,7 +19,6 @@ Before release, confirm the package includes:
 - Runtime scripts needed by users.
 - Editor scripts and USS files needed by the tool.
 - Sample runtime types and sample data assets that demonstrate the workflow.
-- TextMesh Pro Essentials assets required by the runtime sample UI, with `.meta` files preserved.
 - README and license files.
 - Offline package documentation under `Assets/LiveGameDataEditor/Documentation`.
 - Third-party notices for package dependencies and API integrations.
@@ -57,7 +56,7 @@ Before release, confirm the package excludes:
 - JSON/CSV import and export round trip sample data.
 - Validation catches empty IDs and duplicate IDs.
 - Google Sheets integration fails gracefully when not configured.
-- `Packages/manifest.json` includes only dependencies required by the package: `com.unity.nuget.newtonsoft-json` and `com.unity.ugui`.
+- `Packages/manifest.json` includes only dependencies required by the package: `com.unity.nuget.newtonsoft-json`.
 - `com.unity.ide.rider` and other development-only IDE packages are not included.
 
 ## Documentation Checks
@@ -67,7 +66,7 @@ Before release, confirm the package excludes:
 - Known limitations are documented.
 - Version compatibility is documented.
 - License is present and accurate.
-- Third-party notices disclose Unity packages, TextMesh Pro Essentials assets, included fonts/sprites, and Google Sheets API terms/costs.
+- Third-party notices disclose Unity packages and Google Sheets API terms/costs.
 
 ## Final Smoke Test
 
