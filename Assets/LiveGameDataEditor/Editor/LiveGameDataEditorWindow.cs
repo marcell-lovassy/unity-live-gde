@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using LiveGameDataEditor.GoogleSheets;
 using UnityEditor;
 using UnityEngine;
@@ -18,6 +19,10 @@ namespace LiveGameDataEditor.Editor
     /// </summary>
     public class LiveGameDataEditorWindow : EditorWindow
     {
+        private const int MinValidationRowsPerBatch = 4;
+        private const int MaxValidationRowsPerBatch = 40;
+        private const long MaxValidationBatchMilliseconds = 8;
+
         private bool _browserOpen;
         private GameDataBrowserPanel _browserPanel;
         private VisualElement _browserResizeHandle;
@@ -37,17 +42,31 @@ namespace LiveGameDataEditor.Editor
         private bool _sheetsOpen;
         private GoogleSheetsSyncPanel _sheetsPanel;
         private GameDataTableView _tableView;
+        private readonly Dictionary<int, ValidationCacheEntry> _validationCache = new();
+        private IReadOnlyList<GameDataColumnDefinition> _validationColumns;
+        private List<IGameData> _validationEntries;
+        private int _validationGeneration;
+        private int _validationRowIndex;
+        private Dictionary<int, List<ValidationResult>> _validationResults;
+
+        private sealed class ValidationCacheEntry
+        {
+            public int RowCount;
+            public Dictionary<int, List<ValidationResult>> Results;
+        }
 
         private void OnEnable()
         {
-            Undo.undoRedoPerformed += RefreshView;
+            Undo.undoRedoPerformed += OnUndoRedoPerformed;
             EditorApplication.update += UpdateDirtyIndicator;
         }
 
         private void OnDisable()
         {
-            Undo.undoRedoPerformed -= RefreshView;
+            Undo.undoRedoPerformed -= OnUndoRedoPerformed;
             EditorApplication.update -= UpdateDirtyIndicator;
+            CancelValidation();
+            _tableView?.CancelPopulation();
         }
 
         public void CreateGUI()
@@ -168,7 +187,11 @@ namespace LiveGameDataEditor.Editor
         private void BuildSheetsPanel()
         {
             _sheetsPanel = new GoogleSheetsSyncPanel();
-            _sheetsPanel.OnPullComplete += () => { RefreshView(); };
+            _sheetsPanel.OnPullComplete += () =>
+            {
+                InvalidateCachedData(_container);
+                RefreshView();
+            };
             _sheetsPanel.style.display = _sheetsOpen ? DisplayStyle.Flex : DisplayStyle.None;
             rootVisualElement.Add(_sheetsPanel);
         }
@@ -298,6 +321,8 @@ namespace LiveGameDataEditor.Editor
                 OnRemoveEntries,
                 OnDuplicateEntries,
                 OnMoveEntry);
+            _tableView.OnPopulateProgress += OnTablePopulateProgress;
+            _tableView.OnPopulateComplete += OnTablePopulateComplete;
 
             _contentArea.Add(_tableView);
             _mainContent.Add(_contentArea);
@@ -307,6 +332,8 @@ namespace LiveGameDataEditor.Editor
 
         private void RefreshView()
         {
+            CancelValidation();
+
             var has = _container != null;
             _emptyState.style.display = has ? DisplayStyle.None : DisplayStyle.Flex;
             _contentArea.style.display = has ? DisplayStyle.Flex : DisplayStyle.None;
@@ -321,9 +348,8 @@ namespace LiveGameDataEditor.Editor
 
             _dataTypeLabel.text = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
 
+            _tableView.SetFilter(_searchText, _enabledOnly, false);
             _tableView.Populate(_container);
-            _tableView.SetFilter(_searchText, _enabledOnly);
-            RunValidation();
 
             _selectionBar.UpdateInfo(_container);
 
@@ -332,12 +358,195 @@ namespace LiveGameDataEditor.Editor
             if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
         }
 
-        private void RunValidation()
+        private void OnTablePopulateProgress(int loaded, int total)
+        {
+            if (_container == null || total <= 0) return;
+
+            var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
+            _dataTypeLabel.text = $"{displayName} - Loading {loaded}/{total} rows";
+        }
+
+        private void OnTablePopulateComplete()
         {
             if (_container == null) return;
 
-            var results = GameDataValidationService.RunAll(_container);
-            _tableView.ApplyValidation(results);
+            StartValidation();
+        }
+
+        private void StartValidation()
+        {
+            if (_container == null) return;
+
+            var generation = ++_validationGeneration;
+            var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
+            _dataTypeLabel.text = $"{displayName} - Validating...";
+
+            var entries = _container.GetEntries();
+            if (TryApplyCachedValidation(_container, entries.Count))
+            {
+                _dataTypeLabel.text = displayName;
+                return;
+            }
+
+            _validationEntries = entries.Cast<IGameData>().ToList();
+            _validationColumns = GameDataColumnDefinition.FromType(_container.EntryType);
+            _validationResults = GameDataValidationService.RunAll(_validationEntries);
+            _validationRowIndex = 0;
+
+            _contentArea.schedule.Execute(() => ValidateBatch(generation)).ExecuteLater(0);
+        }
+
+        private void CancelValidation()
+        {
+            _validationGeneration++;
+            _validationEntries = null;
+            _validationColumns = null;
+            _validationResults = null;
+            _validationRowIndex = 0;
+        }
+
+        private void ValidateBatch(int generation)
+        {
+            if (generation != _validationGeneration ||
+                _container == null ||
+                _tableView == null ||
+                _tableView.IsLoading ||
+                _validationEntries == null ||
+                _validationColumns == null ||
+                _validationResults == null)
+                return;
+
+            var total = _validationEntries.Count;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var rowsChecked = 0;
+
+            while (_validationRowIndex < total &&
+                   (rowsChecked < MinValidationRowsPerBatch ||
+                    (rowsChecked < MaxValidationRowsPerBatch &&
+                     stopwatch.ElapsedMilliseconds < MaxValidationBatchMilliseconds)))
+            {
+                ValidateRow(_validationRowIndex);
+                _validationRowIndex++;
+                rowsChecked++;
+            }
+
+            var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
+            if (_validationRowIndex < total)
+            {
+                _dataTypeLabel.text = $"{displayName} - Validating {_validationRowIndex}/{total} rows";
+                _contentArea.schedule.Execute(() => ValidateBatch(generation)).ExecuteLater(0);
+                return;
+            }
+
+            _tableView.ApplyValidation(_validationResults);
+            _tableView.UpdateStats();
+            _dataTypeLabel.text = displayName;
+            StoreValidationCache(_container, total, _validationResults);
+
+            _validationEntries = null;
+            _validationColumns = null;
+            _validationResults = null;
+            _validationRowIndex = 0;
+        }
+
+        private void ValidateRow(int rowIndex)
+        {
+            var entry = _validationEntries[rowIndex];
+            foreach (var column in _validationColumns)
+            {
+                var context = new TableValidationContext(
+                    _container,
+                    _validationEntries,
+                    _validationColumns,
+                    entry,
+                    rowIndex,
+                    column,
+                    column.Field.GetValue(entry));
+
+                foreach (var validator in TableFieldValidationService.Validators)
+                {
+                    if (!validator.CanValidate(context)) continue;
+
+                    AddValidationResults(validator.Validate(context));
+                }
+            }
+        }
+
+        private void AddValidationResults(IEnumerable<ValidationResult> results)
+        {
+            foreach (var result in results)
+            {
+                if (!_validationResults.TryGetValue(result.RowIndex, out var rowResults))
+                {
+                    rowResults = new List<ValidationResult>();
+                    _validationResults[result.RowIndex] = rowResults;
+                }
+
+                rowResults.Add(result);
+            }
+        }
+
+        private bool TryApplyCachedValidation(IGameDataContainer container, int rowCount)
+        {
+            var key = GetContainerCacheKey(container);
+            if (!_validationCache.TryGetValue(key, out var cache)) return false;
+            if (cache.RowCount != rowCount || cache.Results == null) return false;
+
+            _tableView.ApplyValidation(cache.Results);
+            _tableView.UpdateStats();
+            return true;
+        }
+
+        private void StoreValidationCache(
+            IGameDataContainer container,
+            int rowCount,
+            Dictionary<int, List<ValidationResult>> results)
+        {
+            if (container == null || results == null) return;
+
+            _validationCache[GetContainerCacheKey(container)] = new ValidationCacheEntry
+            {
+                RowCount = rowCount,
+                Results = CloneValidationResults(results)
+            };
+        }
+
+        private void InvalidateCachedData(IGameDataContainer container)
+        {
+            InvalidateValidationCache(container);
+            _tableView?.InvalidateCachedRows(container);
+        }
+
+        private void InvalidateValidationCache(IGameDataContainer container)
+        {
+            if (container == null)
+            {
+                _validationCache.Clear();
+                return;
+            }
+
+            _validationCache.Remove(GetContainerCacheKey(container));
+        }
+
+        private void OnUndoRedoPerformed()
+        {
+            InvalidateCachedData(null);
+            RefreshView();
+        }
+
+        private static Dictionary<int, List<ValidationResult>> CloneValidationResults(
+            Dictionary<int, List<ValidationResult>> source)
+        {
+            var clone = new Dictionary<int, List<ValidationResult>>();
+            foreach (var pair in source) clone[pair.Key] = new List<ValidationResult>(pair.Value);
+            return clone;
+        }
+
+        private static int GetContainerCacheKey(IGameDataContainer container)
+        {
+            return container is UnityEngine.Object unityObject
+                ? unityObject.GetInstanceID()
+                : container.GetHashCode();
         }
 
         /// <summary>
@@ -370,12 +579,14 @@ namespace LiveGameDataEditor.Editor
         private void ImportJsonAndRefresh()
         {
             GameDataService.ImportFromJson(_container);
+            InvalidateCachedData(_container);
             RefreshView();
         }
 
         private void ImportCsvAndRefresh()
         {
             GameDataService.ImportFromCsv(_container);
+            InvalidateCachedData(_container);
             RefreshView();
         }
 
@@ -384,31 +595,56 @@ namespace LiveGameDataEditor.Editor
         private void OnEntryChanged(int index, IGameData updated)
         {
             GameDataService.UpdateEntry(_container, index, updated);
-            RunValidation();
+            InvalidateValidationCache(_container);
+            StartValidation();
             _tableView.UpdateStats();
         }
 
         private void OnAddEntry()
         {
             GameDataService.AddEntry(_container);
-            RefreshView();
+            InvalidateValidationCache(_container);
+
+            if (!_tableView.TryAppendLatestEntry())
+            {
+                InvalidateCachedData(_container);
+                RefreshView();
+                return;
+            }
+
+            _selectionBar.UpdateInfo(_container);
+            if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
+            StartValidation();
         }
 
         private void OnRemoveEntries(List<int> indices)
         {
             GameDataService.RemoveEntries(_container, indices);
-            RefreshView();
+            InvalidateValidationCache(_container);
+
+            if (!_tableView.TryRemoveEntries(indices))
+            {
+                InvalidateCachedData(_container);
+                RefreshView();
+                return;
+            }
+
+            _selectionBar.UpdateInfo(_container);
+            if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
+            StartValidation();
         }
 
         private void OnDuplicateEntries(List<int> indices)
         {
             GameDataService.DuplicateEntries(_container, indices);
+            InvalidateCachedData(_container);
             RefreshView();
         }
 
         private void OnMoveEntry(int fromIndex, int insertBefore)
         {
             GameDataService.MoveEntry(_container, fromIndex, insertBefore);
+            InvalidateCachedData(_container);
             RefreshView();
         }
     }

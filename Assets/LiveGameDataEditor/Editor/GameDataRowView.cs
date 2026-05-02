@@ -51,7 +51,7 @@ namespace LiveGameDataEditor.Editor
                 _fieldValues[col.Field.Name] = col.Field.GetValue(entry);
 
             AddToClassList("table-row");
-            if (isAlternateRow) AddToClassList("table-row--alternate");
+            SetAlternate(isAlternateRow);
 
             // Selection is handled at the row level; fields stop propagation of their own clicks.
             RegisterCallback<ClickEvent>(evt =>
@@ -101,6 +101,11 @@ namespace LiveGameDataEditor.Editor
         public void SetSelected(bool selected)
         {
             EnableInClassList("table-row--selected", selected);
+        }
+
+        public void SetAlternate(bool alternate)
+        {
+            EnableInClassList("table-row--alternate", alternate);
         }
 
         /// <summary>
