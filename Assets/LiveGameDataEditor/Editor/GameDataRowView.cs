@@ -181,8 +181,8 @@ namespace LiveGameDataEditor.Editor
             var gutter = new VisualElement();
             gutter.AddToClassList("col-gutter");
 
-            // Drag handle — shown when drag-to-reorder is enabled (no active sort)
-            _dragHandle = new Label("⠿");
+            // Drag handle - shown when drag-to-reorder is enabled (no active sort).
+            _dragHandle = new Label("::");
             _dragHandle.AddToClassList("drag-handle");
             _dragHandle.tooltip = "Drag to reorder";
 
