@@ -223,14 +223,28 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleRuntimeDemoUI
   enemies:
-  - {fileID: 0}
   - {fileID: 400002}
-  - {fileID: 0}
+  - {fileID: 1060829732}
+  - {fileID: 1674818495}
+  - {fileID: 1081281451}
+  - {fileID: 131561284}
+  - {fileID: 817619015}
   logOnStart: 1
 --- !u!114 &400002 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
   m_PrefabInstance: {fileID: 2020880007858117105}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1b484206824ae8b092eafb1add153d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleEnemy
+--- !u!114 &131561284 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+  m_PrefabInstance: {fileID: 2056052834}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 0}
   m_Enabled: 1
@@ -588,6 +602,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+--- !u!114 &817619015 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+  m_PrefabInstance: {fileID: 510724501}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1b484206824ae8b092eafb1add153d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleEnemy
 --- !u!1001 &909450551
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -846,6 +871,39 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+--- !u!114 &1060829732 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+  m_PrefabInstance: {fileID: 770745561}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1b484206824ae8b092eafb1add153d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleEnemy
+--- !u!114 &1081281451 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+  m_PrefabInstance: {fileID: 909450551}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1b484206824ae8b092eafb1add153d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleEnemy
+--- !u!114 &1674818495 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 88089884663946349, guid: 4c87993c79949404bbf862ed605fd8f3, type: 3}
+  m_PrefabInstance: {fileID: 1004220310}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e1b484206824ae8b092eafb1add153d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: LiveGameDataEditor.Runtime::LiveGameDataEditor.SampleEnemy
 --- !u!1001 &2056052834
 PrefabInstance:
   m_ObjectHideFlags: 0
