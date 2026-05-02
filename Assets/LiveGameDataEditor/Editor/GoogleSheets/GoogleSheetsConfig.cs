@@ -3,22 +3,21 @@ using UnityEngine;
 namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
-    /// Stores the connection settings needed to reach a Google Spreadsheet.
-    /// Create via <c>Assets / Create / Game Data Spreadsheet Editor / Google Sheets Config</c>.
-    ///
-    /// One config asset is shared across all data containers in your project.
-    /// Each container declares its own tab name via <see cref="GoogleSheetsTabAttribute"/>:
-    /// <code>
+    ///     Stores the connection settings needed to reach a Google Spreadsheet.
+    ///     Create via <c>Assets / Create / Game Data Spreadsheet Editor / Google Sheets Config</c>.
+    ///     One config asset is shared across all data containers in your project.
+    ///     Each container declares its own tab name via <see cref="GoogleSheetsTabAttribute" />:
+    ///     <code>
     /// [GoogleSheetsTab("Enemies")]
     /// public class EnemyDataContainer : GameDataContainerBase&lt;EnemyDataEntry&gt; { }
     /// </code>
-    /// If the attribute is absent the service falls back to the entry type name.
-    ///
-    /// Credentials (API key or service account JSON path) are stored in this asset.
-    /// If you use a Service Account, keep the <c>.json</c> key file outside <c>Assets/</c>
-    /// and add it to <c>.gitignore</c> so it is never committed to source control.
+    ///     If the attribute is absent the service falls back to the entry type name.
+    ///     Credentials (API key or service account JSON path) are stored in this asset.
+    ///     If you use a Service Account, keep the <c>.json</c> key file outside <c>Assets/</c>
+    ///     and add it to <c>.gitignore</c> so it is never committed to source control.
     /// </summary>
-    [CreateAssetMenu(menuName = "Game Data Spreadsheet Editor/Google Sheets Config", fileName = "NewGoogleSheetsConfig", order    = 51)]
+    [CreateAssetMenu(menuName = "Game Data Spreadsheet Editor/Google Sheets Config", fileName = "NewGoogleSheetsConfig",
+        order = 51)]
     public class GoogleSheetsConfig : ScriptableObject
     {
         // ── Spreadsheet ────────────────────────────────────────────────────────
@@ -68,41 +67,31 @@ namespace LiveGameDataEditor.GoogleSheets
         // ── Sync behaviour ────────────────────────────────────────────────────
 
         [Tooltip("Automatically push to the sheet every time a container asset is saved (Ctrl+S).")]
-        public bool AutoPushOnSave = false;
+        public bool AutoPushOnSave;
+
+        /// <summary>Human-readable label for the current auth mode used in the UI.</summary>
+        public string AuthModeLabel => AuthMode switch
+        {
+            GoogleSheetsAuthMode.ApiKey => "API Key",
+            GoogleSheetsAuthMode.OAuth => "OAuth",
+            GoogleSheetsAuthMode.ServiceAccount => "Service Account",
+            _ => "Unknown"
+        };
 
         // ── Internal ──────────────────────────────────────────────────────────
 
         /// <summary>Returns true when the minimum required settings are filled in.</summary>
         public bool IsConfigured()
         {
-            if (string.IsNullOrWhiteSpace(SpreadsheetId))
-            {
-                return false;
-            }
-            if (AuthMode == GoogleSheetsAuthMode.ApiKey && string.IsNullOrWhiteSpace(ApiKey))
-            {
-                return false;
-            }
+            if (string.IsNullOrWhiteSpace(SpreadsheetId)) return false;
+            if (AuthMode == GoogleSheetsAuthMode.ApiKey && string.IsNullOrWhiteSpace(ApiKey)) return false;
             if (AuthMode == GoogleSheetsAuthMode.OAuth &&
                 (string.IsNullOrWhiteSpace(OAuthClientId) || string.IsNullOrWhiteSpace(OAuthClientSecret)))
-            {
                 return false;
-            }
-            if (AuthMode == GoogleSheetsAuthMode.ServiceAccount && string.IsNullOrWhiteSpace(ServiceAccountJsonPath))
-            {
-                return false;
-            }
+            if (AuthMode == GoogleSheetsAuthMode.ServiceAccount &&
+                string.IsNullOrWhiteSpace(ServiceAccountJsonPath)) return false;
             return true;
         }
-
-        /// <summary>Human-readable label for the current auth mode used in the UI.</summary>
-        public string AuthModeLabel => AuthMode switch
-        {
-            GoogleSheetsAuthMode.ApiKey         => "API Key",
-            GoogleSheetsAuthMode.OAuth          => "OAuth",
-            GoogleSheetsAuthMode.ServiceAccount => "Service Account",
-            _                                   => "Unknown"
-        };
     }
 
     public enum GoogleSheetsAuthMode
@@ -114,7 +103,6 @@ namespace LiveGameDataEditor.GoogleSheets
         OAuth,
 
         /// <summary>Read + Write. Service Account JSON key file. Suitable for CI/CD pipelines.</summary>
-        ServiceAccount,
+        ServiceAccount
     }
 }
-

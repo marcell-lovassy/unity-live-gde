@@ -24,13 +24,11 @@ namespace LiveGameDataEditor.Editor
             }
 
             if (context.FieldType.GetCustomAttribute<FlagsAttribute>() == null)
-            {
                 yield return new ValidationResult(
                     context.RowIndex,
                     context.FieldInfo.Name,
                     $"[TableFlags] is used on enum {context.FieldType.Name}, but the enum is missing [Flags].",
                     ValidationSeverity.Warning);
-            }
         }
     }
 }

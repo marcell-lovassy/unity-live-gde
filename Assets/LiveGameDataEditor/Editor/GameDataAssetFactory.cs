@@ -5,16 +5,16 @@ using UnityEngine;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Creates new <see cref="IGameDataContainer"/> ScriptableObject assets for a given
-    /// entry type. Looks up the matching container type via <see cref="GameDataTypeRegistry"/>,
-    /// prompts for a save path, and registers the asset with the AssetDatabase.
+    ///     Creates new <see cref="IGameDataContainer" /> ScriptableObject assets for a given
+    ///     entry type. Looks up the matching container type via <see cref="GameDataTypeRegistry" />,
+    ///     prompts for a save path, and registers the asset with the AssetDatabase.
     /// </summary>
     public static class GameDataAssetFactory
     {
         /// <summary>
-        /// Creates a new container asset for <paramref name="entryType"/>.
-        /// Shows a save-file dialog; returns <c>null</c> if the user cancels or if no
-        /// container type is registered for the given entry type.
+        ///     Creates a new container asset for <paramref name="entryType" />.
+        ///     Shows a save-file dialog; returns <c>null</c> if the user cancels or if no
+        ///     container type is registered for the given entry type.
         /// </summary>
         public static IGameDataContainer CreateForEntryType(Type entryType)
         {
@@ -25,7 +25,7 @@ namespace LiveGameDataEditor.Editor
             {
                 EditorUtility.DisplayDialog(
                     "No Container Type Found",
-                    $"No concrete ScriptableObject implementing IGameDataContainer was found " +
+                    "No concrete ScriptableObject implementing IGameDataContainer was found " +
                     $"for entry type '{entryType.Name}'.\n\n" +
                     $"Create a class that extends GameDataContainerBase<{entryType.Name}> and " +
                     "add [CreateAssetMenu] to it.",
@@ -33,8 +33,8 @@ namespace LiveGameDataEditor.Editor
                 return null;
             }
 
-            string defaultName = $"New{entryType.Name}Container";
-            string path = EditorUtility.SaveFilePanelInProject(
+            var defaultName = $"New{entryType.Name}Container";
+            var path = EditorUtility.SaveFilePanelInProject(
                 "Create Game Data Asset",
                 defaultName,
                 "asset",

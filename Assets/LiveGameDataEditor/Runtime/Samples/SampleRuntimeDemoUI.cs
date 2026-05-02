@@ -3,7 +3,7 @@ using UnityEngine;
 namespace LiveGameDataEditor
 {
     /// <summary>
-    /// Minimal runtime reporter that logs resolved sample enemy rows without extra UI dependencies.
+    ///     Minimal runtime reporter that logs resolved sample enemy rows without extra UI dependencies.
     /// </summary>
     public sealed class SampleRuntimeDemoUI : MonoBehaviour
     {
@@ -13,33 +13,24 @@ namespace LiveGameDataEditor
         private void Start()
         {
             Refresh();
-            if (logOnStart)
-            {
-                LogResolvedData();
-            }
+            if (logOnStart) LogResolvedData();
         }
 
         [ContextMenu("Refresh From Data Controllers")]
         public void Refresh()
         {
-            if (enemies == null)
-            {
-                return;
-            }
+            if (enemies == null) return;
 
             foreach (var enemy in enemies)
-            {
                 if (enemy != null)
-                {
                     enemy.ApplyData();
-                }
-            }
         }
 
         [ContextMenu("Log Resolved Data")]
         public void LogResolvedData()
         {
-            Debug.Log("[LiveGameDataEditor] Runtime sample: scene objects resolve ScriptableObject rows by ID through data controller components.");
+            Debug.Log(
+                "[LiveGameDataEditor] Runtime sample: scene objects resolve ScriptableObject rows by ID through data controller components.");
             if (enemies == null)
             {
                 Debug.Log("[LiveGameDataEditor] Runtime sample has no enemies assigned.");
@@ -47,11 +38,9 @@ namespace LiveGameDataEditor
             }
 
             foreach (var enemy in enemies)
-            {
                 Debug.Log(enemy != null
                     ? $"[LiveGameDataEditor] {enemy.GetDisplaySummary()}"
                     : "[LiveGameDataEditor] Missing SampleEnemy reference");
-            }
         }
     }
 }

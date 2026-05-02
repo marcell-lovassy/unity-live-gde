@@ -4,7 +4,7 @@ using System.Linq;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Runs registered field validators against every reflected column in a table.
+    ///     Runs registered field validators against every reflected column in a table.
     /// </summary>
     public static class TableFieldValidationService
     {
@@ -14,20 +14,17 @@ namespace LiveGameDataEditor.Editor
             new ColorStringFieldValidator(),
             new AssetGuidFieldValidator(),
             new RangeFieldValidator(),
-            new FlagsFieldValidator(),
+            new FlagsFieldValidator()
         };
 
         public static IEnumerable<ValidationResult> RunAll(IGameDataContainer container)
         {
-            if (container == null)
-            {
-                yield break;
-            }
+            if (container == null) yield break;
 
-            var entries = container.GetEntries().Cast<IGameDataEntry>().ToList();
+            var entries = container.GetEntries().Cast<IGameData>().ToList();
             var columns = GameDataColumnDefinition.FromType(container.EntryType);
 
-            for (int rowIndex = 0; rowIndex < entries.Count; rowIndex++)
+            for (var rowIndex = 0; rowIndex < entries.Count; rowIndex++)
             {
                 var entry = entries[rowIndex];
                 foreach (var column in columns)
@@ -43,15 +40,9 @@ namespace LiveGameDataEditor.Editor
 
                     foreach (var validator in Validators)
                     {
-                        if (!validator.CanValidate(context))
-                        {
-                            continue;
-                        }
+                        if (!validator.CanValidate(context)) continue;
 
-                        foreach (var result in validator.Validate(context))
-                        {
-                            yield return result;
-                        }
+                        foreach (var result in validator.Validate(context)) yield return result;
                     }
                 }
             }

@@ -34,17 +34,17 @@ namespace LiveGameDataEditor.Editor
             }
 
             var value = context.FieldType == typeof(int)
-                ? (float)(context.CurrentValue is int intValue ? intValue : 0)
-                : (context.CurrentValue is float floatValue ? floatValue : 0f);
+                ? context.CurrentValue is int intValue ? intValue : 0
+                : context.CurrentValue is float floatValue
+                    ? floatValue
+                    : 0f;
 
             if (value < attribute.Min || value > attribute.Max)
-            {
                 yield return new ValidationResult(
                     context.RowIndex,
                     context.FieldInfo.Name,
                     $"{context.FieldInfo.Name} is outside the allowed range {attribute.Min} to {attribute.Max}.",
                     ValidationSeverity.Warning);
-            }
         }
     }
 }

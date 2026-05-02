@@ -1,4 +1,3 @@
-using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -13,10 +12,7 @@ namespace LiveGameDataEditor.Editor
         public VisualElement CreateCell(TableFieldContext context)
         {
             var field = new TextField { value = (string)(context.CurrentValue ?? string.Empty) };
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

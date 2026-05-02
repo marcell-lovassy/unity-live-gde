@@ -7,22 +7,18 @@ using UnityEngine.UIElements;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Sidebar panel that lists every <see cref="IGameDataContainer"/> asset found in the
-    /// project, grouped by entry-type display name.
-    ///
-    /// Assets are discovered via <see cref="TypeCache"/> + <see cref="AssetDatabase"/> and
-    /// cached until the user presses Refresh or the panel is rebuilt.
-    ///
-    /// Clicking a row fires <see cref="OnContainerSelected"/> with the selected
-    /// <see cref="ScriptableObject"/> so the EditorWindow can load it.
+    ///     Sidebar panel that lists every <see cref="IGameDataContainer" /> asset found in the
+    ///     project, grouped by entry-type display name.
+    ///     Assets are discovered via <see cref="TypeCache" /> + <see cref="AssetDatabase" /> and
+    ///     cached until the user presses Refresh or the panel is rebuilt.
+    ///     Clicking a row fires <see cref="OnContainerSelected" /> with the selected
+    ///     <see cref="ScriptableObject" /> so the EditorWindow can load it.
     /// </summary>
     public class GameDataBrowserPanel : VisualElement
     {
-        /// <summary>Fired when the user clicks a container row.</summary>
-        public event Action<ScriptableObject> OnContainerSelected;
+        private ScriptableObject _activeContainer;
 
         private VisualElement _list;
-        private ScriptableObject _activeContainer;
 
         public GameDataBrowserPanel()
         {
@@ -31,11 +27,14 @@ namespace LiveGameDataEditor.Editor
             Refresh();
         }
 
+        /// <summary>Fired when the user clicks a container row.</summary>
+        public event Action<ScriptableObject> OnContainerSelected;
+
         // ── Public API ─────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Highlights the given container as the active selection.
-        /// Does not fire <see cref="OnContainerSelected"/>.
+        ///     Highlights the given container as the active selection.
+        ///     Does not fire <see cref="OnContainerSelected" />.
         /// </summary>
         public void SetActiveContainer(ScriptableObject container)
         {
@@ -72,7 +71,7 @@ namespace LiveGameDataEditor.Editor
                     if (so == _activeContainer) btn.AddToClassList("browser-item--active");
 
                     var container = so as IGameDataContainer;
-                    int count = container?.GetEntries()?.Count ?? 0;
+                    var count = container?.GetEntries()?.Count ?? 0;
                     btn.text = $"{so.name}  ({count})";
                     btn.tooltip = AssetDatabase.GetAssetPath(so);
                     _list.Add(btn);
@@ -108,8 +107,8 @@ namespace LiveGameDataEditor.Editor
         // ── Asset discovery ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Returns all IGameDataContainer ScriptableObject assets in the project,
-        /// grouped by entry-type display name (sorted alphabetically).
+        ///     Returns all IGameDataContainer ScriptableObject assets in the project,
+        ///     grouped by entry-type display name (sorted alphabetically).
         /// </summary>
         private List<(string groupName, List<ScriptableObject> assets)> FindAllContainers()
         {
@@ -125,29 +124,31 @@ namespace LiveGameDataEditor.Editor
                 var guids = AssetDatabase.FindAssets($"t:{type.Name}");
                 foreach (var guid in guids)
                 {
-                    string path = AssetDatabase.GUIDToAssetPath(guid);
+                    var path = AssetDatabase.GUIDToAssetPath(guid);
                     var so = AssetDatabase.LoadAssetAtPath(path, type) as ScriptableObject;
                     if (so == null || so is not IGameDataContainer container) continue;
 
-                    string group = GameDataTypeRegistry.GetEntryDisplayName(container.EntryType);
+                    var group = GameDataTypeRegistry.GetEntryDisplayName(container.EntryType);
                     if (!grouped.TryGetValue(group, out var list))
                     {
                         list = new List<ScriptableObject>();
                         grouped[group] = list;
                     }
+
                     list.Add(so);
                 }
             }
 
             // Sort groups and items inside each group by asset name.
             var result = new List<(string, List<ScriptableObject>)>(grouped.Count);
-            var keys   = new List<string>(grouped.Keys);
+            var keys = new List<string>(grouped.Keys);
             keys.Sort(StringComparer.OrdinalIgnoreCase);
             foreach (var key in keys)
             {
                 grouped[key].Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
                 result.Add((key, grouped[key]));
             }
+
             return result;
         }
 
@@ -156,7 +157,7 @@ namespace LiveGameDataEditor.Editor
             foreach (var child in _list.Children())
             {
                 if (child is not Button btn) continue;
-                bool isActive = btn.userData as ScriptableObject == _activeContainer;
+                var isActive = btn.userData as ScriptableObject == _activeContainer;
                 btn.EnableInClassList("browser-item--active", isActive);
             }
         }

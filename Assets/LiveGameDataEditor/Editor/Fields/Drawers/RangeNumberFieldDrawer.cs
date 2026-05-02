@@ -1,5 +1,4 @@
 using System.Reflection;
-using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -16,19 +15,11 @@ namespace LiveGameDataEditor.Editor
         {
             var attribute = context.FieldInfo.GetCustomAttribute<TableRangeAttribute>();
             if (attribute.Min > attribute.Max)
-            {
                 return CreateUnsupported(context, "[TableRange] minimum must be less than or equal to maximum.");
-            }
 
-            if (context.FieldType == typeof(int))
-            {
-                return CreateIntCell(context, attribute);
-            }
+            if (context.FieldType == typeof(int)) return CreateIntCell(context, attribute);
 
-            if (context.FieldType == typeof(float))
-            {
-                return CreateFloatCell(context, attribute);
-            }
+            if (context.FieldType == typeof(float)) return CreateFloatCell(context, attribute);
 
             return CreateUnsupported(context, "[TableRange] can only be used on int or float fields.");
         }

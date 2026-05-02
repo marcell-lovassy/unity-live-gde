@@ -23,12 +23,9 @@ namespace LiveGameDataEditor.Editor
             }
 
             var value = context.CurrentValue as Enum
-                ?? (Enum)Enum.GetValues(context.FieldType).GetValue(0);
+                        ?? (Enum)Enum.GetValues(context.FieldType).GetValue(0);
             var field = new EnumFlagsField(value);
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

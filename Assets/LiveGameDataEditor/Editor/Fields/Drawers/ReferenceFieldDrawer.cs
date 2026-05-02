@@ -31,9 +31,7 @@ namespace LiveGameDataEditor.Editor
             AddOption(labels, keysByLabel, "(None)", EmptyKey);
 
             foreach (var option in resolved.Options)
-            {
                 AddOption(labels, keysByLabel, ReferenceTableResolver.GetOptionLabel(option), option.Key);
-            }
 
             string selectedLabel;
             if (string.IsNullOrEmpty(currentKey))
@@ -56,10 +54,7 @@ namespace LiveGameDataEditor.Editor
                 : "Select a referenced row key.";
             popup.RegisterValueChangedCallback(evt =>
             {
-                if (keysByLabel.TryGetValue(evt.newValue, out var key))
-                {
-                    context.SetValue(key);
-                }
+                if (keysByLabel.TryGetValue(evt.newValue, out var key)) context.SetValue(key);
             });
 
             return popup;

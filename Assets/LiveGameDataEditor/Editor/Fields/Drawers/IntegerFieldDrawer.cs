@@ -1,4 +1,3 @@
-using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -14,10 +13,7 @@ namespace LiveGameDataEditor.Editor
         {
             var value = context.CurrentValue is int intValue ? intValue : 0;
             var field = new IntegerField { value = value };
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

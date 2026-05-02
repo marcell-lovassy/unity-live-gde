@@ -16,7 +16,7 @@ MonoBehaviour:
   - Id: skeleton_grunt
     DisplayName: Skeleton Grunt
     WeaponId: rusty_sword
-    UiColor: "#BFC7D5FF"
+    UiColor: '#BFC7D5FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 90
     SpawnChance: 65
@@ -30,7 +30,7 @@ MonoBehaviour:
   - Id: skeleton_guard
     DisplayName: Skeleton Guard
     WeaponId: iron_sword
-    UiColor: "#9DA8B8FF"
+    UiColor: '#9DA8B8FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 140
     SpawnChance: 45
@@ -44,7 +44,7 @@ MonoBehaviour:
   - Id: goblin_raider
     DisplayName: Goblin Raider
     WeaponId: steel_dagger
-    UiColor: "#83B75FFF"
+    UiColor: '#83B75FFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 75
     SpawnChance: 70
@@ -58,7 +58,7 @@ MonoBehaviour:
   - Id: forest_witch
     DisplayName: Forest Witch
     WeaponId: oak_staff
-    UiColor: "#8D5FA8FF"
+    UiColor: '#8D5FA8FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 120
     SpawnChance: 35
@@ -72,7 +72,7 @@ MonoBehaviour:
   - Id: cave_troll
     DisplayName: Cave Troll
     WeaponId: stone_club
-    UiColor: "#8B7E6AFF"
+    UiColor: '#8B7E6AFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 280
     SpawnChance: 20
@@ -86,7 +86,7 @@ MonoBehaviour:
   - Id: vampire_acolyte
     DisplayName: Vampire Acolyte
     WeaponId: ritual_blade
-    UiColor: "#9B2E46FF"
+    UiColor: '#9B2E46FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 180
     SpawnChance: 25
@@ -100,7 +100,7 @@ MonoBehaviour:
   - Id: legacy_bandit
     DisplayName: Legacy Bandit
     WeaponId: rusty_sword
-    UiColor: "#777777FF"
+    UiColor: '#777777FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 65
     SpawnChance: 0
@@ -113,7 +113,7 @@ MonoBehaviour:
   - Id: fire_imp
     DisplayName: Fire Imp
     WeaponId: ember_wand
-    UiColor: "#FF6A2AFF"
+    UiColor: '#FF6A2AFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 60
     SpawnChance: 55
@@ -127,7 +127,7 @@ MonoBehaviour:
   - Id: frost_archer
     DisplayName: Frost Archer
     WeaponId: frost_bow
-    UiColor: "#7CC7FFFF"
+    UiColor: '#7CC7FFFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 110
     SpawnChance: 40
@@ -141,7 +141,7 @@ MonoBehaviour:
   - Id: necromancer
     DisplayName: Necromancer
     WeaponId: bone_staff
-    UiColor: "#4E6B5DFF"
+    UiColor: '#4E6B5DFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 220
     SpawnChance: 18
@@ -155,7 +155,7 @@ MonoBehaviour:
   - Id: sand_assassin
     DisplayName: Sand Assassin
     WeaponId: steel_dagger
-    UiColor: "#D9B15CFF"
+    UiColor: '#D9B15CFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 95
     SpawnChance: 50
@@ -169,7 +169,7 @@ MonoBehaviour:
   - Id: iron_golem
     DisplayName: Iron Golem
     WeaponId: iron_hammer
-    UiColor: "#A8A8A8FF"
+    UiColor: '#A8A8A8FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 420
     SpawnChance: 10
@@ -183,7 +183,7 @@ MonoBehaviour:
   - Id: ancient_dragon
     DisplayName: Ancient Dragon
     WeaponId: dragon_breath
-    UiColor: "#D43D2FFF"
+    UiColor: '#D43D2FFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 1200
     SpawnChance: 2
@@ -197,7 +197,7 @@ MonoBehaviour:
   - Id: dark_lord
     DisplayName: Dark Lord
     WeaponId: shadow_scepter
-    UiColor: "#3E2A66FF"
+    UiColor: '#3E2A66FF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 950
     SpawnChance: 3
@@ -211,7 +211,7 @@ MonoBehaviour:
   - Id: training_dummy
     DisplayName: Training Dummy
     WeaponId: training_stick
-    UiColor: "#FFFFFFFF"
+    UiColor: '#FFFFFFFF'
     IconGuid: 4441b2f08e7a11246b619cd8ded44ffb
     Health: 999
     SpawnChance: 0

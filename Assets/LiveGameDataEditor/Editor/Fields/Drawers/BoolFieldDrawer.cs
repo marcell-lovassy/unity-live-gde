@@ -1,4 +1,3 @@
-using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -14,10 +13,7 @@ namespace LiveGameDataEditor.Editor
         {
             var value = context.CurrentValue is bool boolValue && boolValue;
             var field = new Toggle { value = value };
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

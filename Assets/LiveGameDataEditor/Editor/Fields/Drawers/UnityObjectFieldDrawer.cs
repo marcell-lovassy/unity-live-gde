@@ -18,10 +18,7 @@ namespace LiveGameDataEditor.Editor
                 objectType = context.FieldType,
                 value = context.CurrentValue as Object
             };
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

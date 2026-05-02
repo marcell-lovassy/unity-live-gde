@@ -10,8 +10,8 @@ namespace LiveGameDataEditor.Editor
     }
 
     /// <summary>
-    /// The result of a single validation rule applied to one entry.
-    /// Immutable value type.
+    ///     The result of a single validation rule applied to one entry.
+    ///     Immutable value type.
     /// </summary>
     public readonly struct ValidationResult
     {
@@ -19,7 +19,7 @@ namespace LiveGameDataEditor.Editor
         public readonly int RowIndex;
 
         /// <summary>
-        /// Name of the specific field that failed (e.g. "Id"), or empty string for entry-level issues.
+        ///     Name of the specific field that failed (e.g. "Id"), or empty string for entry-level issues.
         /// </summary>
         public readonly string FieldName;
 
@@ -31,22 +31,22 @@ namespace LiveGameDataEditor.Editor
 
         public ValidationResult(int rowIndex, string fieldName, string message, ValidationSeverity severity)
         {
-            RowIndex  = rowIndex;
+            RowIndex = rowIndex;
             FieldName = fieldName;
-            Message   = message;
-            Severity  = severity;
+            Message = message;
+            Severity = severity;
         }
     }
 
     // ── Collection-level validator interface ───────────────────────────────────────
 
     /// <summary>
-    /// Validates a full list of entries (enables cross-row rules such as duplicate checks).
-    /// Implement this interface and register with <see cref="GameDataValidationService"/>
-    /// to plug in custom validation without changing any UI code.
+    ///     Validates a full list of entries (enables cross-row rules such as duplicate checks).
+    ///     Implement this interface and register with <see cref="GameDataValidationService" />
+    ///     to plug in custom validation without changing any UI code.
     /// </summary>
     public interface IGameDataValidator
     {
-        IEnumerable<ValidationResult> Validate(IReadOnlyList<IGameDataEntry> entries);
+        IEnumerable<ValidationResult> Validate(IReadOnlyList<IGameData> entries);
     }
 }

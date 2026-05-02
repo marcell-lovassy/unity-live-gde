@@ -1,5 +1,6 @@
 using System.Reflection;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -15,14 +16,10 @@ namespace LiveGameDataEditor.Editor
         {
             var attribute = context.FieldInfo.GetCustomAttribute<TableAssetAttribute>();
             if (context.FieldType != typeof(string))
-            {
                 return CreateUnsupported(context, "[TableAsset] can only be used on string fields.");
-            }
 
             if (!AssetGuidUtility.IsValidAssetType(attribute.AssetType))
-            {
                 return CreateUnsupported(context, "[TableAsset] requires a UnityEngine.Object asset type.");
-            }
 
             var asset = AssetGuidUtility.LoadAsset(context.CurrentValue as string, attribute.AssetType);
 
@@ -34,7 +31,7 @@ namespace LiveGameDataEditor.Editor
             preview.style.width = 24;
             preview.style.height = 24;
             preview.style.marginRight = 4;
-            preview.scaleMode = UnityEngine.ScaleMode.ScaleToFit;
+            preview.scaleMode = ScaleMode.ScaleToFit;
             preview.image = AssetGuidUtility.GetPreview(asset);
             root.Add(preview);
 

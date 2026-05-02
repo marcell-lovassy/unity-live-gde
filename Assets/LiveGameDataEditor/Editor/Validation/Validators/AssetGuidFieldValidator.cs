@@ -1,5 +1,5 @@
-using System.Reflection;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEditor;
 
 namespace LiveGameDataEditor.Editor
@@ -35,10 +35,7 @@ namespace LiveGameDataEditor.Editor
             }
 
             var guid = context.CurrentValue as string;
-            if (string.IsNullOrWhiteSpace(guid))
-            {
-                yield break;
-            }
+            if (string.IsNullOrWhiteSpace(guid)) yield break;
 
             var path = AssetDatabase.GUIDToAssetPath(guid);
             if (string.IsNullOrEmpty(path))
@@ -53,13 +50,11 @@ namespace LiveGameDataEditor.Editor
 
             var asset = AssetDatabase.LoadAssetAtPath(path, attribute.AssetType);
             if (asset == null)
-            {
                 yield return new ValidationResult(
                     context.RowIndex,
                     context.FieldInfo.Name,
                     $"Asset GUID {guid} does not resolve to a {attribute.AssetType.Name}.",
                     ValidationSeverity.Error);
-            }
         }
     }
 }

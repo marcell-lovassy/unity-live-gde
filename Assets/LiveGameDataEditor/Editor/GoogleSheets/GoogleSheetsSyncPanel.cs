@@ -1,7 +1,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using LiveGameDataEditor;
 using LiveGameDataEditor.Editor;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -11,46 +10,40 @@ using UnityEngine.UIElements;
 namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
-    /// Collapsible panel that sits below the main toolbar in <see cref="LiveGameDataEditorWindow"/>.
-    /// Lets the designer pick a <see cref="GoogleSheetsConfig"/>, sign in (OAuth), then push or pull
-    /// with one click.
-    ///
-    /// The <see cref="GoogleSheetsConfig"/> is shared across all containers in the editor window —
-    /// switching containers (browser tabs) does not change or clear the config.
-    /// The association is stored in a single EditorPrefs key per project.
+    ///     Collapsible panel that sits below the main toolbar in <see cref="LiveGameDataEditorWindow" />.
+    ///     Lets the designer pick a <see cref="GoogleSheetsConfig" />, sign in (OAuth), then push or pull
+    ///     with one click.
+    ///     The <see cref="GoogleSheetsConfig" /> is shared across all containers in the editor window —
+    ///     switching containers (browser tabs) does not change or clear the config.
+    ///     The association is stored in a single EditorPrefs key per project.
     /// </summary>
     public sealed class GoogleSheetsSyncPanel : VisualElement
     {
-        // ── Events ─────────────────────────────────────────────────────────────
+        // Single shared EditorPrefs key — config is project-wide, not per-container.
+        private const string SharedConfigPrefKey = "LiveGameDataEditor.SheetsConfig";
+        private Label _authBadge;
+        private bool _busy;
 
-        /// <summary>Fired after a successful pull so the window can refresh the table.</summary>
-        public event Action OnPullComplete;
+        private GoogleSheetsConfig _config;
+
+        // ── UI references ──────────────────────────────────────────────────────
+
+        private ObjectField _configField;
 
         // ── State ──────────────────────────────────────────────────────────────
 
         private IGameDataContainer _container;
-        private string             _containerGuid = "";
-
-        private GoogleSheetsConfig _config;
-        private bool               _busy = false;
-
-        // ── UI references ──────────────────────────────────────────────────────
-
-        private ObjectField   _configField;
-        private Label         _authBadge;
-        private Label         _tabInfoLabel;
+        private string _containerGuid = "";
+        private Label _lastSyncLabel;
         private VisualElement _oauthRow;
-        private Label         _oauthStatusLabel;
-        private Button        _signInBtn;
-        private Button        _signOutBtn;
-        private Button        _pushBtn;
-        private Button        _pullBtn;
-        private Label         _statusLabel;
+        private Label _oauthStatusLabel;
+        private Button _pullBtn;
+        private Button _pushBtn;
+        private Button _signInBtn;
+        private Button _signOutBtn;
+        private Label _statusLabel;
         private VisualElement _statusRow;
-        private Label         _lastSyncLabel;
-
-        // Single shared EditorPrefs key — config is project-wide, not per-container.
-        private const string SharedConfigPrefKey = "LiveGameDataEditor.SheetsConfig";
+        private Label _tabInfoLabel;
 
         // ── Constructor ────────────────────────────────────────────────────────
 
@@ -60,19 +53,24 @@ namespace LiveGameDataEditor.GoogleSheets
             Build();
         }
 
+        // ── Last-sync persistence ──────────────────────────────────────────────
+
+        private string LastSyncPrefKey => "LiveGameDataEditor.SheetsLastSync." + _containerGuid;
+        // ── Events ─────────────────────────────────────────────────────────────
+
+        /// <summary>Fired after a successful pull so the window can refresh the table.</summary>
+        public event Action OnPullComplete;
+
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Called by the window whenever the loaded container changes (including null).
-        /// The config is shared — it is kept when switching containers and only restored
-        /// from EditorPrefs on the very first call (cold start with no config loaded yet).
+        ///     Called by the window whenever the loaded container changes (including null).
+        ///     The config is shared — it is kept when switching containers and only restored
+        ///     from EditorPrefs on the very first call (cold start with no config loaded yet).
         /// </summary>
         public void SetContainer(IGameDataContainer container)
         {
-            if (!string.IsNullOrEmpty(_containerGuid))
-            {
-                GoogleSheetsAutoSaveMonitor.Unregister(_containerGuid);
-            }
+            if (!string.IsNullOrEmpty(_containerGuid)) GoogleSheetsAutoSaveMonitor.Unregister(_containerGuid);
 
             _container = container;
 
@@ -85,13 +83,14 @@ namespace LiveGameDataEditor.GoogleSheets
             {
                 // Cold start — restore the shared config from EditorPrefs.
                 GoogleSheetsConfig restoredConfig = null;
-                string configGuid = EditorPrefs.GetString(SharedConfigPrefKey, "");
+                var configGuid = EditorPrefs.GetString(SharedConfigPrefKey, "");
                 if (!string.IsNullOrEmpty(configGuid))
                 {
-                    string configPath = AssetDatabase.GUIDToAssetPath(configGuid);
+                    var configPath = AssetDatabase.GUIDToAssetPath(configGuid);
                     restoredConfig = AssetDatabase.LoadAssetAtPath<GoogleSheetsConfig>(configPath);
                 }
-                SetConfig(restoredConfig, saveToPrefs: false);
+
+                SetConfig(restoredConfig, false);
             }
             else
             {
@@ -100,7 +99,7 @@ namespace LiveGameDataEditor.GoogleSheets
             }
 
             RefreshButtons();
-            SetStatus("", success: true);
+            SetStatus("", true);
             UpdateLastSyncLabel();
             UpdateTabInfoLabel();
         }
@@ -139,7 +138,7 @@ namespace LiveGameDataEditor.GoogleSheets
             _configField.AddToClassList("sheets-config-field");
             _configField.RegisterValueChangedCallback(evt =>
             {
-                SetConfig(evt.newValue as GoogleSheetsConfig, saveToPrefs: true);
+                SetConfig(evt.newValue as GoogleSheetsConfig, true);
                 RefreshButtons();
             });
             configRow.Add(_configField);
@@ -221,7 +220,7 @@ namespace LiveGameDataEditor.GoogleSheets
 
             if (saveToPrefs)
             {
-                string configGuid = config != null
+                var configGuid = config != null
                     ? AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(config))
                     : "";
                 EditorPrefs.SetString(SharedConfigPrefKey, configGuid);
@@ -230,21 +229,18 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private void CreateNewConfig()
         {
-            string path = EditorUtility.SaveFilePanelInProject(
+            var path = EditorUtility.SaveFilePanelInProject(
                 "Create Google Sheets Config",
                 "NewGoogleSheetsConfig",
                 "asset",
                 "Choose a location for the new GoogleSheetsConfig asset.");
 
-            if (string.IsNullOrEmpty(path))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(path)) return;
 
             var newConfig = ScriptableObject.CreateInstance<GoogleSheetsConfig>();
             AssetDatabase.CreateAsset(newConfig, path);
             AssetDatabase.SaveAssets();
-            SetConfig(newConfig, saveToPrefs: true);
+            SetConfig(newConfig, true);
             Selection.activeObject = newConfig;
         }
 
@@ -252,28 +248,25 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private async void OnSignInClicked()
         {
-            if (_config == null || _busy)
-            {
-                return;
-            }
+            if (_config == null || _busy) return;
 
             _busy = true;
             SetBusy(true);
-            SetStatus("Opening browser for Google sign-in…", success: true);
+            SetStatus("Opening browser for Google sign-in…", true);
 
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             try
             {
                 await GoogleSheetsAuthService.StartOAuthFlowAsync(_config, cts.Token);
-                SetStatus("Signed in successfully.", success: true);
+                SetStatus("Signed in successfully.", true);
             }
             catch (OperationCanceledException)
             {
-                SetStatus("Sign-in timed out (5 min). Please try again.", success: false);
+                SetStatus("Sign-in timed out (5 min). Please try again.", false);
             }
             catch (Exception ex)
             {
-                SetStatus("Sign-in failed: " + ex.Message, success: false);
+                SetStatus("Sign-in failed: " + ex.Message, false);
                 Debug.LogError("[LiveGameDataEditor] Google OAuth: " + ex.Message);
             }
             finally
@@ -287,41 +280,32 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private void OnSignOutClicked()
         {
-            if (_config == null)
-            {
-                return;
-            }
+            if (_config == null) return;
             GoogleSheetsAuthService.SignOut(_config);
             UpdateAuthBadge();
             RefreshButtons();
-            SetStatus("Signed out.", success: true);
+            SetStatus("Signed out.", true);
         }
 
         // ── Push / Pull ────────────────────────────────────────────────────────
 
         private async void OnPushClicked()
         {
-            if (_busy || _container == null || _config == null)
-            {
-                return;
-            }
-            await RunSync(push: true);
+            if (_busy || _container == null || _config == null) return;
+            await RunSync(true);
         }
 
         private async void OnPullClicked()
         {
-            if (_busy || _container == null || _config == null)
-            {
-                return;
-            }
-            await RunSync(push: false);
+            if (_busy || _container == null || _config == null) return;
+            await RunSync(false);
         }
 
         private async Task RunSync(bool push)
         {
             _busy = true;
             SetBusy(true);
-            SetStatus(push ? "Pushing…" : "Pulling…", success: true);
+            SetStatus(push ? "Pushing…" : "Pulling…", true);
 
             SyncResult result;
             try
@@ -341,10 +325,7 @@ namespace LiveGameDataEditor.GoogleSheets
             SaveLastSyncTime(push ? "↑" : "↓");
             UpdateLastSyncLabel();
 
-            if (!push && result.Success)
-            {
-                OnPullComplete?.Invoke();
-            }
+            if (!push && result.Success) OnPullComplete?.Invoke();
         }
 
         // ── UI helpers ─────────────────────────────────────────────────────────
@@ -358,10 +339,10 @@ namespace LiveGameDataEditor.GoogleSheets
                 return;
             }
 
-            bool isConfigured  = _config.IsConfigured();
-            bool isOAuthReady  = _config.AuthMode != GoogleSheetsAuthMode.OAuth
-                                 || GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
-            bool canSync = isConfigured && isOAuthReady && !_busy;
+            var isConfigured = _config.IsConfigured();
+            var isOAuthReady = _config.AuthMode != GoogleSheetsAuthMode.OAuth
+                               || GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
+            var canSync = isConfigured && isOAuthReady && !_busy;
 
             // API Key is Pull-only; OAuth and Service Account support Push.
             _pushBtn.SetEnabled(canSync && _config.AuthMode != GoogleSheetsAuthMode.ApiKey);
@@ -370,7 +351,7 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private void SetBusy(bool busy)
         {
-            bool canSync = _container != null && _config != null && _config.IsConfigured() && !busy;
+            var canSync = _container != null && _config != null && _config.IsConfigured() && !busy;
             _pushBtn.SetEnabled(canSync && _config?.AuthMode != GoogleSheetsAuthMode.ApiKey);
             _pullBtn.SetEnabled(canSync);
         }
@@ -384,7 +365,7 @@ namespace LiveGameDataEditor.GoogleSheets
             }
 
             _statusRow.style.display = DisplayStyle.Flex;
-            string prefix = success ? "✓  " : "✗  ";
+            var prefix = success ? "✓  " : "✗  ";
             _statusLabel.text = prefix + message;
             _statusLabel.RemoveFromClassList("sheets-status--ok");
             _statusLabel.RemoveFromClassList("sheets-status--error");
@@ -408,10 +389,10 @@ namespace LiveGameDataEditor.GoogleSheets
             _authBadge.RemoveFromClassList("sheets-badge--sa");
             _authBadge.AddToClassList(_config.AuthMode switch
             {
-                GoogleSheetsAuthMode.ApiKey         => "sheets-badge--apikey",
-                GoogleSheetsAuthMode.OAuth          => "sheets-badge--oauth",
+                GoogleSheetsAuthMode.ApiKey => "sheets-badge--apikey",
+                GoogleSheetsAuthMode.OAuth => "sheets-badge--oauth",
                 GoogleSheetsAuthMode.ServiceAccount => "sheets-badge--sa",
-                _                                   => "sheets-badge--apikey"
+                _ => "sheets-badge--apikey"
             });
 
             UpdateOAuthRow();
@@ -426,44 +407,35 @@ namespace LiveGameDataEditor.GoogleSheets
             }
 
             _oauthRow.style.display = DisplayStyle.Flex;
-            bool isAuthed = GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
+            var isAuthed = GoogleSheetsAuthService.IsOAuthAuthenticated(_config);
 
             _oauthStatusLabel.text = isAuthed ? "✓  Signed in to Google" : "⚠  Not signed in";
             _oauthStatusLabel.RemoveFromClassList("sheets-oauth--ok");
             _oauthStatusLabel.RemoveFromClassList("sheets-oauth--warn");
             _oauthStatusLabel.AddToClassList(isAuthed ? "sheets-oauth--ok" : "sheets-oauth--warn");
 
-            _signInBtn.style.display  = isAuthed ? DisplayStyle.None : DisplayStyle.Flex;
+            _signInBtn.style.display = isAuthed ? DisplayStyle.None : DisplayStyle.Flex;
             _signOutBtn.style.display = isAuthed ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void UpdateTabInfoLabel()
         {
-            if (_tabInfoLabel == null)
-            {
-                return;
-            }
+            if (_tabInfoLabel == null) return;
             if (_container == null)
             {
                 _tabInfoLabel.text = "";
                 _tabInfoLabel.style.display = DisplayStyle.None;
                 return;
             }
-            string tabName = GoogleSheetsService.ResolveTabName(_container);
+
+            var tabName = GoogleSheetsService.ResolveTabName(_container);
             _tabInfoLabel.text = $"→ tab: {tabName}";
             _tabInfoLabel.style.display = DisplayStyle.Flex;
         }
 
-        // ── Last-sync persistence ──────────────────────────────────────────────
-
-        private string LastSyncPrefKey => "LiveGameDataEditor.SheetsLastSync." + _containerGuid;
-
         private void SaveLastSyncTime(string direction)
         {
-            if (string.IsNullOrEmpty(_containerGuid))
-            {
-                return;
-            }
+            if (string.IsNullOrEmpty(_containerGuid)) return;
             EditorPrefs.SetString(LastSyncPrefKey, $"{direction} {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         }
 
@@ -474,7 +446,8 @@ namespace LiveGameDataEditor.GoogleSheets
                 _lastSyncLabel.text = "";
                 return;
             }
-            string stored = EditorPrefs.GetString(LastSyncPrefKey, "");
+
+            var stored = EditorPrefs.GetString(LastSyncPrefKey, "");
             _lastSyncLabel.text = string.IsNullOrEmpty(stored) ? "Never synced" : "Last: " + stored;
         }
     }

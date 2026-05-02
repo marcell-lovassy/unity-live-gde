@@ -1,20 +1,25 @@
+using TMPro;
 using UnityEngine;
 
 namespace LiveGameDataEditor
 {
     /// <summary>
-    /// Small runtime sample that resolves an enemy row by ID and reads related weapon data.
+    ///     Small runtime sample that resolves an enemy row by ID and reads related weapon data.
     /// </summary>
     public sealed class SampleEnemy : MonoBehaviour
     {
         [SerializeField] private string enemyId;
         [SerializeField] private EnemyDataController enemyDataController;
         [SerializeField] private WeaponDataController weaponDataController;
-        [SerializeField] private Renderer targetRenderer;
+        [SerializeField] private SpriteRenderer targetRenderer;
+
+        [Header("UI")] [SerializeField] private TextMeshProUGUI idText;
+        [SerializeField] private TextMeshProUGUI healthText;
+        [SerializeField] private TextMeshProUGUI damageText;
 
         public string EnemyId => enemyId;
-        public EnemyDataEntry EnemyData { get; private set; }
-        public WeaponDataEntry WeaponData { get; private set; }
+        private EnemyData EnemyData { get; set; }
+        private WeaponData WeaponData { get; set; }
 
         private void Start()
         {
@@ -23,42 +28,45 @@ namespace LiveGameDataEditor
 
         public void ApplyData()
         {
-            EnemyData = enemyDataController != null
-                ? enemyDataController.GetEntryById(enemyId)
-                : null;
-
+            EnemyData = enemyDataController != null ? enemyDataController.GetEntryById(enemyId) : null;
             WeaponData = EnemyData != null && weaponDataController != null
                 ? weaponDataController.GetEntryById(EnemyData.WeaponId)
                 : null;
 
             ApplyColor();
+            UpdateUI();
+        }
+
+        private void UpdateUI()
+        {
+            if (EnemyData == null)
+            {
+                Debug.LogWarning($"{enemyId}: missing enemy data");
+                return;
+            }
+
+            idText.SetText(EnemyData.DisplayName);
+            healthText.SetText($"Hp: {EnemyData.Health}");
+            damageText.SetText($"Dmg: {EnemyData.Damage}");
         }
 
         public string GetDisplaySummary()
         {
-            if (EnemyData == null)
-            {
-                return $"{enemyId}: missing enemy data";
-            }
+            if (EnemyData == null) return $"{enemyId}: missing enemy data";
 
             var weaponLabel = WeaponData != null
                 ? $"{WeaponData.DisplayName} ({WeaponData.Damage})"
                 : $"missing weapon '{EnemyData.WeaponId}'";
 
-            return $"{EnemyData.DisplayName} | HP {EnemyData.Health} | Damage {EnemyData.Damage} | Weapon {weaponLabel} | Spawn {EnemyData.SpawnChance}%";
+            return
+                $"{EnemyData.DisplayName} | HP {EnemyData.Health} | Damage {EnemyData.Damage} | Weapon {weaponLabel} | Spawn {EnemyData.SpawnChance}%";
         }
 
         private void ApplyColor()
         {
-            if (targetRenderer == null || EnemyData == null)
-            {
-                return;
-            }
+            if (targetRenderer == null || EnemyData == null) return;
 
-            if (ColorUtility.TryParseHtmlString(EnemyData.UiColor, out var color))
-            {
-                targetRenderer.material.color = color;
-            }
+            if (ColorUtility.TryParseHtmlString(EnemyData.UiColor, out var color)) targetRenderer.color = color;
         }
     }
 }

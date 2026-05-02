@@ -9,82 +9,51 @@ using UnityEngine.UIElements;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Welcome / onboarding window shown on first install and reopenable from the menu.
-    ///
-    /// Four tabs:
-    ///   Welcome       — elevator pitch + feature overview
-    ///   Quick Start   — step-by-step guide to first use
-    ///   Sheets Setup  — interactive wizard: creates GoogleSheetsConfig and fills it in inline
-    ///   About         — version info + external links
-    ///
-    /// Auto-shown via <see cref="WelcomeWindowInitializer"/> on the first editor launch
-    /// after installation. Suppressed when the "Don't show on startup" checkbox is ticked.
+    ///     Welcome / onboarding window shown on first install and reopenable from the menu.
+    ///     Four tabs:
+    ///     Welcome       — elevator pitch + feature overview
+    ///     Quick Start   — step-by-step guide to first use
+    ///     Sheets Setup  — interactive wizard: creates GoogleSheetsConfig and fills it in inline
+    ///     About         — version info + external links
+    ///     Auto-shown via <see cref="WelcomeWindowInitializer" /> on the first editor launch
+    ///     after installation. Suppressed when the "Don't show on startup" checkbox is ticked.
     /// </summary>
     public sealed class WelcomeWindow : EditorWindow
     {
-        private const string Version       = "1.0.0";
-        private const string SuppressPref  = "LiveGameDataEditor.WelcomeSuppressed";
-        private const string ShownPref     = "LiveGameDataEditor.WelcomeShown";
+        private const string Version = "1.0.0";
+        private const string SuppressPref = "LiveGameDataEditor.WelcomeSuppressed";
+        private const string ShownPref = "LiveGameDataEditor.WelcomeShown";
 
-        private const string CloudConsoleUrl     = "https://console.cloud.google.com";
+        private const string CloudConsoleUrl = "https://console.cloud.google.com";
         private const string CloudCredentialsUrl = "https://console.cloud.google.com/apis/credentials";
-        private const string CloudConsentUrl     = "https://console.cloud.google.com/apis/credentials/consent";
-        private const string CloudSheetsApiUrl   = "https://console.cloud.google.com/apis/library/sheets.googleapis.com";
+        private const string CloudConsentUrl = "https://console.cloud.google.com/apis/credentials/consent";
+        private const string CloudSheetsApiUrl = "https://console.cloud.google.com/apis/library/sheets.googleapis.com";
 
-        // ── Page identifiers ───────────────────────────────────────────────────
-
-        private enum Page { Welcome, QuickStart, SheetsSetup, About }
-
-        private Page             _activePage = Page.Welcome;
-        private VisualElement    _contentArea;
-        private VisualElement[]  _tabButtons;
+        private Page _activePage = Page.Welcome;
+        private VisualElement _contentArea;
+        private VisualElement[] _tabButtons;
+        private Label _testStatusLabel; // updated by TestConnectionAsync
+        private VisualElement _wizardAuthCredentials; // swapped on auth-mode change
 
         // ── Sheets wizard state ────────────────────────────────────────────────
 
         private GoogleSheetsConfig _wizardConfig;
-        private string             _wizardConfigPath;
-        private string             _wizardFolderPath = "Assets";
-        private VisualElement      _wizardAuthCredentials; // swapped on auth-mode change
-        private Label              _testStatusLabel;       // updated by TestConnectionAsync
-
-        // ── Menu item ─────────────────────────────────────────────────────────
-
-        [MenuItem("Tools/GDE/Welcome", priority = 200)]
-        public static void ShowWindow()
-        {
-            var window = GetWindow<WelcomeWindow>(utility: true, title: "Game Data Spreadsheet Editor");
-            window.minSize = new Vector2(660, 580);
-            window.maxSize = new Vector2(660, 580);
-            window.ShowUtility();
-        }
-
-        /// <summary>Called by <see cref="WelcomeWindowInitializer"/> on first install.</summary>
-        public static void ShowOnStartup()
-        {
-            if (EditorPrefs.GetBool(SuppressPref, false))
-            {
-                return;
-            }
-            EditorPrefs.SetBool(ShownPref, true);
-            ShowWindow();
-        }
+        private string _wizardConfigPath;
+        private string _wizardFolderPath = "Assets";
 
         // ── Window lifecycle ───────────────────────────────────────────────────
 
         private void CreateGUI()
         {
             // Load the shared stylesheet.
-            string ussPath = AssetDatabase.FindAssets("LiveGameDataEditor t:StyleSheet") is { Length: > 0 } guids
+            var ussPath = AssetDatabase.FindAssets("LiveGameDataEditor t:StyleSheet") is { Length: > 0 } guids
                 ? AssetDatabase.GUIDToAssetPath(guids[0])
                 : null;
 
             if (!string.IsNullOrEmpty(ussPath))
             {
                 var sheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
-                if (sheet != null)
-                {
-                    rootVisualElement.styleSheets.Add(sheet);
-                }
+                if (sheet != null) rootVisualElement.styleSheets.Add(sheet);
             }
 
             rootVisualElement.AddToClassList("welcome-root");
@@ -95,6 +64,25 @@ namespace LiveGameDataEditor.Editor
             BuildFooter();
 
             NavigateTo(Page.Welcome);
+        }
+
+        // ── Menu item ─────────────────────────────────────────────────────────
+
+        [MenuItem("Tools/GDE/Welcome", priority = 200)]
+        public static void ShowWindow()
+        {
+            var window = GetWindow<WelcomeWindow>(true, "Game Data Spreadsheet Editor");
+            window.minSize = new Vector2(660, 580);
+            window.maxSize = new Vector2(660, 580);
+            window.ShowUtility();
+        }
+
+        /// <summary>Called by <see cref="WelcomeWindowInitializer" /> on first install.</summary>
+        public static void ShowOnStartup()
+        {
+            if (EditorPrefs.GetBool(SuppressPref, false)) return;
+            EditorPrefs.SetBool(ShownPref, true);
+            ShowWindow();
         }
 
         // ── Banner ─────────────────────────────────────────────────────────────
@@ -122,7 +110,7 @@ namespace LiveGameDataEditor.Editor
             var body = new VisualElement();
             body.AddToClassList("welcome-body");
             body.style.flexDirection = FlexDirection.Row;
-            body.style.flexGrow      = 1;
+            body.style.flexGrow = 1;
 
             BuildSidebar(body);
             BuildContentArea(body);
@@ -137,19 +125,19 @@ namespace LiveGameDataEditor.Editor
 
             var pages = new[]
             {
-                (Page.Welcome,     "🏠  Welcome"),
-                (Page.QuickStart,  "⚡  Quick Start"),
+                (Page.Welcome, "🏠  Welcome"),
+                (Page.QuickStart, "⚡  Quick Start"),
                 (Page.SheetsSetup, "☁  Sheets Setup"),
-                (Page.About,       "ℹ  About"),
+                (Page.About, "ℹ  About")
             };
 
             _tabButtons = new VisualElement[pages.Length];
 
-            for (int i = 0; i < pages.Length; i++)
+            for (var i = 0; i < pages.Length; i++)
             {
                 var (page, label) = pages[i];
-                int captured = i;
-                Page capturedPage = page;
+                var captured = i;
+                var capturedPage = page;
 
                 var btn = new Button(() => NavigateTo(capturedPage));
                 btn.text = label;
@@ -176,16 +164,13 @@ namespace LiveGameDataEditor.Editor
             var footer = new VisualElement();
             footer.AddToClassList("welcome-footer");
 
-            bool suppressed = EditorPrefs.GetBool(SuppressPref, false);
+            var suppressed = EditorPrefs.GetBool(SuppressPref, false);
             var toggle = new Toggle("Don't show on startup")
             {
                 value = suppressed
             };
             toggle.AddToClassList("welcome-suppress-toggle");
-            toggle.RegisterValueChangedCallback(evt =>
-            {
-                EditorPrefs.SetBool(SuppressPref, evt.newValue);
-            });
+            toggle.RegisterValueChangedCallback(evt => { EditorPrefs.SetBool(SuppressPref, evt.newValue); });
             footer.Add(toggle);
 
             var spacer = new VisualElement();
@@ -208,21 +193,18 @@ namespace LiveGameDataEditor.Editor
 
             switch (page)
             {
-                case Page.Welcome:     BuildWelcomePage();     break;
-                case Page.QuickStart:  BuildQuickStartPage();  break;
+                case Page.Welcome: BuildWelcomePage(); break;
+                case Page.QuickStart: BuildQuickStartPage(); break;
                 case Page.SheetsSetup: BuildSheetsSetupPage(); break;
-                case Page.About:       BuildAboutPage();       break;
+                case Page.About: BuildAboutPage(); break;
             }
 
             // Update tab button active states.
             var pageValues = (Page[])Enum.GetValues(typeof(Page));
-            for (int i = 0; i < _tabButtons.Length && i < pageValues.Length; i++)
+            for (var i = 0; i < _tabButtons.Length && i < pageValues.Length; i++)
             {
                 _tabButtons[i].RemoveFromClassList("welcome-tab-btn--active");
-                if (pageValues[i] == page)
-                {
-                    _tabButtons[i].AddToClassList("welcome-tab-btn--active");
-                }
+                if (pageValues[i] == page) _tabButtons[i].AddToClassList("welcome-tab-btn--active");
             }
         }
 
@@ -243,25 +225,22 @@ namespace LiveGameDataEditor.Editor
 
             var features = new[]
             {
-                ("📋", "Table editor",       "Edit game data like Excel, directly in Unity, sort, filter and search"),
-                ("✅", "Validation",         "Prevent broken data (duplicate IDs, invalid values)"),
-                ("🔄", "Multi-container",    "Switch between data assets with a browser panel"),
-                ("📊", "CSV & JSON",         "Import and export in one click"),
-                ("☁",  "Google Sheets Sync", "Sign in with Google and sync instantly"),
-                ("↕",  "Drag to reorder",   "Reorder rows with a handle — undo supported"),
+                ("📋", "Table editor", "Edit game data like Excel, directly in Unity, sort, filter and search"),
+                ("✅", "Validation", "Prevent broken data (duplicate IDs, invalid values)"),
+                ("🔄", "Multi-container", "Switch between data assets with a browser panel"),
+                ("📊", "CSV & JSON", "Import and export in one click"),
+                ("☁", "Google Sheets Sync", "Sign in with Google and sync instantly"),
+                ("↕", "Drag to reorder", "Reorder rows with a handle — undo supported")
             };
 
-            foreach (var (icon, title, desc) in features)
-            {
-                scroll.Add(FeatureRow(icon, title, desc));
-            }
+            foreach (var (icon, title, desc) in features) scroll.Add(FeatureRow(icon, title, desc));
 
             var openBtn = new Button(() =>
-            {
-                Close();
-                EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
-            })
-            { text = "Open Game Data Spreadsheet Editor  →" };
+                {
+                    Close();
+                    EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
+                })
+                { text = "Open Game Data Spreadsheet Editor  →" };
             openBtn.AddToClassList("welcome-cta-btn");
             scroll.Add(openBtn);
 
@@ -351,14 +330,14 @@ namespace LiveGameDataEditor.Editor
             // Folder picker row
             var folderRow = new VisualElement();
             folderRow.style.flexDirection = FlexDirection.Row;
-            folderRow.style.alignItems    = Align.Center;
-            folderRow.style.marginTop     = 8;
-            folderRow.style.marginBottom  = 8;
+            folderRow.style.alignItems = Align.Center;
+            folderRow.style.marginTop = 8;
+            folderRow.style.marginBottom = 8;
 
             var folderLabel = new Label("Save to:");
             folderLabel.AddToClassList("welcome-wizard-field-label");
             folderLabel.style.marginRight = 8;
-            folderLabel.style.minWidth    = 60;
+            folderLabel.style.minWidth = 60;
             folderRow.Add(folderLabel);
 
             var folderDisplay = new Label(_wizardFolderPath);
@@ -367,35 +346,31 @@ namespace LiveGameDataEditor.Editor
             folderRow.Add(folderDisplay);
 
             var browseBtn = new Button(() =>
-            {
-                string chosen = EditorUtility.OpenFolderPanel("Choose folder", _wizardFolderPath, "");
-                if (!string.IsNullOrEmpty(chosen))
                 {
-                    // Convert absolute path to project-relative (Assets/...)
-                    string projectPath = Application.dataPath.Replace("/Assets", "");
-                    if (chosen.StartsWith(projectPath))
+                    var chosen = EditorUtility.OpenFolderPanel("Choose folder", _wizardFolderPath, "");
+                    if (!string.IsNullOrEmpty(chosen))
                     {
-                        _wizardFolderPath = chosen.Substring(projectPath.Length + 1);
+                        // Convert absolute path to project-relative (Assets/...)
+                        var projectPath = Application.dataPath.Replace("/Assets", "");
+                        if (chosen.StartsWith(projectPath))
+                            _wizardFolderPath = chosen.Substring(projectPath.Length + 1);
+                        else
+                            _wizardFolderPath = "Assets";
+                        folderDisplay.text = _wizardFolderPath;
                     }
-                    else
-                    {
-                        _wizardFolderPath = "Assets";
-                    }
-                    folderDisplay.text = _wizardFolderPath;
-                }
-            })
-            { text = "Browse…" };
+                })
+                { text = "Browse…" };
             browseBtn.AddToClassList("welcome-wizard-browse-btn");
             folderRow.Add(browseBtn);
 
             box.Add(folderRow);
 
             var createBtn = new Button(() =>
-            {
-                CreateWizardConfig(_wizardFolderPath);
-                RebuildSheetsPage();
-            })
-            { text = "✓  Create GoogleSheetsConfig" };
+                {
+                    CreateWizardConfig(_wizardFolderPath);
+                    RebuildSheetsPage();
+                })
+                { text = "✓  Create GoogleSheetsConfig" };
             createBtn.AddToClassList("welcome-cta-btn");
             box.Add(createBtn);
 
@@ -404,7 +379,7 @@ namespace LiveGameDataEditor.Editor
 
         private void CreateWizardConfig(string folder)
         {
-            string assetPath = AssetDatabase.GenerateUniqueAssetPath(
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
                 Path.Combine(folder, "GoogleSheetsConfig.asset").Replace("\\", "/"));
 
             var config = CreateInstance<GoogleSheetsConfig>();
@@ -412,7 +387,7 @@ namespace LiveGameDataEditor.Editor
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            _wizardConfig     = config;
+            _wizardConfig = config;
             _wizardConfigPath = assetPath;
 
             // Ping the new asset in the Project window
@@ -421,19 +396,13 @@ namespace LiveGameDataEditor.Editor
 
         private void FindOrLoadWizardConfig()
         {
-            if (_wizardConfig != null)
-            {
-                return;
-            }
+            if (_wizardConfig != null) return;
 
             var guids = AssetDatabase.FindAssets("t:GoogleSheetsConfig");
-            if (guids.Length == 0)
-            {
-                return;
-            }
+            if (guids.Length == 0) return;
 
             _wizardConfigPath = AssetDatabase.GUIDToAssetPath(guids[0]);
-            _wizardConfig     = AssetDatabase.LoadAssetAtPath<GoogleSheetsConfig>(_wizardConfigPath);
+            _wizardConfig = AssetDatabase.LoadAssetAtPath<GoogleSheetsConfig>(_wizardConfigPath);
         }
 
         private void RebuildSheetsPage()
@@ -451,9 +420,9 @@ namespace LiveGameDataEditor.Editor
 
             // Left side: icon + filename on one line, path underneath truncated
             var textCol = new VisualElement();
-            textCol.style.flexGrow   = 1;
+            textCol.style.flexGrow = 1;
             textCol.style.flexShrink = 1;
-            textCol.style.overflow   = Overflow.Hidden;
+            textCol.style.overflow = Overflow.Hidden;
 
             var nameLabel = new Label($"✓  {Path.GetFileName(_wizardConfigPath)}");
             nameLabel.AddToClassList("welcome-wizard-config-bar-name");
@@ -466,7 +435,7 @@ namespace LiveGameDataEditor.Editor
             bar.Add(textCol);
 
             var pingBtn = new Button(() => EditorGUIUtility.PingObject(_wizardConfig))
-            { text = "Show in Project" };
+                { text = "Show in Project" };
             pingBtn.AddToClassList("welcome-wizard-ping-btn");
             bar.Add(pingBtn);
 
@@ -502,17 +471,20 @@ namespace LiveGameDataEditor.Editor
 
             _wizardAuthCredentials = new VisualElement();
 
-            foreach (var mode in new[] { GoogleSheetsAuthMode.OAuth, GoogleSheetsAuthMode.ApiKey, GoogleSheetsAuthMode.ServiceAccount })
+            foreach (var mode in new[]
+                     {
+                         GoogleSheetsAuthMode.OAuth, GoogleSheetsAuthMode.ApiKey, GoogleSheetsAuthMode.ServiceAccount
+                     })
             {
-                GoogleSheetsAuthMode captured = mode;
-                bool active = _wizardConfig.AuthMode == mode;
+                var captured = mode;
+                var active = _wizardConfig.AuthMode == mode;
 
-                string label = mode switch
+                var label = mode switch
                 {
-                    GoogleSheetsAuthMode.OAuth          => "● OAuth  (recommended)",
-                    GoogleSheetsAuthMode.ApiKey         => "API Key  (read-only)",
+                    GoogleSheetsAuthMode.OAuth => "● OAuth  (recommended)",
+                    GoogleSheetsAuthMode.ApiKey => "API Key  (read-only)",
                     GoogleSheetsAuthMode.ServiceAccount => "Service Account  (CI/CD)",
-                    _                                   => mode.ToString()
+                    _ => mode.ToString()
                 };
 
                 var btn = new Button();
@@ -526,17 +498,12 @@ namespace LiveGameDataEditor.Editor
                     RefreshAuthCredentialsSection();
                     // Re-apply button active states
                     foreach (var child in authRow.Children())
-                    {
                         child.RemoveFromClassList("welcome-wizard-auth-btn--active");
-                    }
                     btn.AddToClassList("welcome-wizard-auth-btn--active");
                 };
 
                 btn.AddToClassList("welcome-wizard-auth-btn");
-                if (active)
-                {
-                    btn.AddToClassList("welcome-wizard-auth-btn--active");
-                }
+                if (active) btn.AddToClassList("welcome-wizard-auth-btn--active");
                 authRow.Add(btn);
             }
 
@@ -564,11 +531,11 @@ namespace LiveGameDataEditor.Editor
 
             // ── CTA ────────────────────────────────────────────────────────────
             var openBtn = new Button(() =>
-            {
-                Close();
-                EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
-            })
-            { text = "Open Game Data Spreadsheet Editor  →" };
+                {
+                    Close();
+                    EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
+                })
+                { text = "Open Game Data Spreadsheet Editor  →" };
             openBtn.AddToClassList("welcome-cta-btn");
             form.Add(openBtn);
 
@@ -659,7 +626,7 @@ namespace LiveGameDataEditor.Editor
                 Undo.RecordObject(_wizardConfig, "Set SA JSON Path");
                 _wizardConfig.ServiceAccountJsonPath = v;
                 SaveWizardConfig();
-            }, placeholder: "e.g.  C:/credentials/my-project-key.json"));
+            }, "e.g.  C:/credentials/my-project-key.json"));
         }
 
         // ── Wizard: test connection ────────────────────────────────────────────
@@ -676,10 +643,7 @@ namespace LiveGameDataEditor.Editor
             _testStatusLabel = new Label();
             _testStatusLabel.AddToClassList("welcome-wizard-test-status");
 
-            btn.clicked += () =>
-            {
-                _ = RunTestConnectionAsync(btn);
-            };
+            btn.clicked += () => { _ = RunTestConnectionAsync(btn); };
 
             row.Add(btn);
             row.Add(_testStatusLabel);
@@ -691,39 +655,26 @@ namespace LiveGameDataEditor.Editor
             testBtn.SetEnabled(false);
             SetTestStatus("testing", "⏳  Testing connection…");
 
-            SyncResult result = await GoogleSheetsService.TestConnectionAsync(_wizardConfig);
+            var result = await GoogleSheetsService.TestConnectionAsync(_wizardConfig);
 
             // Guard: window may have been closed while the async call was in flight.
-            if (testBtn == null || _testStatusLabel == null)
-            {
-                return;
-            }
+            if (testBtn == null || _testStatusLabel == null) return;
 
             testBtn.SetEnabled(true);
             if (result.Success)
-            {
                 SetTestStatus("ok", $"✓  {result.Message}");
-            }
             else
-            {
                 SetTestStatus("fail", $"✗  {result.Message}");
-            }
         }
 
         private void SetTestStatus(string state, string message)
         {
-            if (_testStatusLabel == null)
-            {
-                return;
-            }
+            if (_testStatusLabel == null) return;
             _testStatusLabel.text = message;
             _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--ok");
             _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--fail");
             _testStatusLabel.RemoveFromClassList("welcome-wizard-test-status--testing");
-            if (!string.IsNullOrEmpty(state))
-            {
-                _testStatusLabel.AddToClassList($"welcome-wizard-test-status--{state}");
-            }
+            if (!string.IsNullOrEmpty(state)) _testStatusLabel.AddToClassList($"welcome-wizard-test-status--{state}");
         }
 
         private void ResetTestStatus()
@@ -733,10 +684,7 @@ namespace LiveGameDataEditor.Editor
 
         private void SaveWizardConfig()
         {
-            if (_wizardConfig == null)
-            {
-                return;
-            }
+            if (_wizardConfig == null) return;
             ResetTestStatus(); // stale test result no longer valid after a field change
             EditorUtility.SetDirty(_wizardConfig);
             AssetDatabase.SaveAssets();
@@ -751,7 +699,7 @@ namespace LiveGameDataEditor.Editor
 
             var header = new VisualElement();
             header.style.flexDirection = FlexDirection.Row;
-            header.style.alignItems   = Align.Center;
+            header.style.alignItems = Align.Center;
             header.style.marginBottom = 8;
 
             var numLabel = new Label($"STEP {number}");
@@ -801,10 +749,7 @@ namespace LiveGameDataEditor.Editor
             container.Add(label);
 
             var field = new TextField { value = currentValue };
-            if (!string.IsNullOrEmpty(placeholder))
-            {
-                field.tooltip = placeholder;
-            }
+            if (!string.IsNullOrEmpty(placeholder)) field.tooltip = placeholder;
             field.AddToClassList("welcome-wizard-field");
             field.RegisterValueChangedCallback(evt => onChange(evt.newValue));
             container.Add(field);
@@ -934,6 +879,16 @@ namespace LiveGameDataEditor.Editor
             var btn = new Button(() => Application.OpenURL(url)) { text = text };
             btn.AddToClassList("welcome-link-btn");
             return btn;
+        }
+
+        // ── Page identifiers ───────────────────────────────────────────────────
+
+        private enum Page
+        {
+            Welcome,
+            QuickStart,
+            SheetsSetup,
+            About
         }
     }
 }

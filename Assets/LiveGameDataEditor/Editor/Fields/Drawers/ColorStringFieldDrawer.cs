@@ -24,10 +24,7 @@ namespace LiveGameDataEditor.Editor
             }
 
             var currentText = context.CurrentValue as string;
-            if (!ColorStringUtility.TryParseHtmlColor(currentText, out var color))
-            {
-                color = Color.white;
-            }
+            if (!ColorStringUtility.TryParseHtmlColor(currentText, out var color)) color = Color.white;
 
             var field = new ColorField
             {

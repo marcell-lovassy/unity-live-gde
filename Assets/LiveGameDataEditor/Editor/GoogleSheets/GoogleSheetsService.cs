@@ -1,28 +1,25 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using LiveGameDataEditor;
 using LiveGameDataEditor.Editor;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
+using Object = UnityEngine.Object;
 
 namespace LiveGameDataEditor.GoogleSheets
 {
     /// <summary>
-    /// Pushes and pulls data between an <see cref="IGameDataContainer"/> and a Google Sheet
-    /// via the Google Sheets REST API v4.
-    ///
-    /// <b>Push</b> writes a header row + data rows to the configured tab, replacing all
-    /// existing content (PUT with valueInputOption=USER_ENTERED).
-    ///
-    /// <b>Pull</b> reads the sheet, matches columns by header name, and overwrites the
-    /// container's entries (wrapped in Undo.RecordObject).
+    ///     Pushes and pulls data between an <see cref="IGameDataContainer" /> and a Google Sheet
+    ///     via the Google Sheets REST API v4.
+    ///     <b>Push</b> writes a header row + data rows to the configured tab, replacing all
+    ///     existing content (PUT with valueInputOption=USER_ENTERED).
+    ///     <b>Pull</b> reads the sheet, matches columns by header name, and overwrites the
+    ///     container's entries (wrapped in Undo.RecordObject).
     /// </summary>
     public static class GoogleSheetsService
     {
@@ -31,36 +28,31 @@ namespace LiveGameDataEditor.GoogleSheets
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Verifies that the current <paramref name="config"/> can reach the Google Sheets API.
-        /// Makes the lightest possible request: spreadsheet metadata (title only, no cell data).
-        /// Returns a <see cref="SyncResult"/> with the spreadsheet title on success or a
-        /// human-readable error message on failure.
+        ///     Verifies that the current <paramref name="config" /> can reach the Google Sheets API.
+        ///     Makes the lightest possible request: spreadsheet metadata (title only, no cell data).
+        ///     Returns a <see cref="SyncResult" /> with the spreadsheet title on success or a
+        ///     human-readable error message on failure.
         /// </summary>
         public static async Task<SyncResult> TestConnectionAsync(GoogleSheetsConfig config)
         {
             try
             {
-                if (config == null)
-                {
-                    return SyncResult.Fail("No GoogleSheetsConfig provided.");
-                }
+                if (config == null) return SyncResult.Fail("No GoogleSheetsConfig provided.");
 
                 if (!config.IsConfigured())
                 {
-                    string missing = DescribeMissingFields(config);
+                    var missing = DescribeMissingFields(config);
                     return SyncResult.Fail($"Config incomplete — {missing}");
                 }
 
-                string url = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}?fields=properties.title";
-                string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
+                var url = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}?fields=properties.title";
+                var authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
-                {
                     url += "&key=" + Uri.EscapeDataString(config.ApiKey);
-                }
 
-                string response = await SendRequestAsync("GET", url, authHeader, null);
+                var response = await SendRequestAsync("GET", url, authHeader, null);
                 var responseObj = JObject.Parse(response);
-                string title = (string)responseObj["properties"]?["title"] ?? config.SpreadsheetId;
+                var title = (string)responseObj["properties"]?["title"] ?? config.SpreadsheetId;
 
                 return SyncResult.Ok($"Connected — \"{title}\"");
             }
@@ -79,8 +71,8 @@ namespace LiveGameDataEditor.GoogleSheets
         }
 
         /// <summary>
-        /// Pushes all entries from <paramref name="container"/> to the configured Google Sheet.
-        /// Returns a result indicating success or failure with a human-readable message.
+        ///     Pushes all entries from <paramref name="container" /> to the configured Google Sheet.
+        ///     Returns a result indicating success or failure with a human-readable message.
         /// </summary>
         public static async Task<SyncResult> PushAsync(IGameDataContainer container, GoogleSheetsConfig config)
         {
@@ -90,132 +82,118 @@ namespace LiveGameDataEditor.GoogleSheets
 
                 // API Key is read-only — Push is not supported.
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
-                {
                     return SyncResult.Fail(
                         "API Key mode is read-only. " +
                         "Switch to OAuth or Service Account auth to push data.");
-                }
 
                 var columns = GameDataColumnDefinition.FromType(container.EntryType);
-                IList entries = container.GetEntries();
+                var entries = container.GetEntries();
 
                 // Build the 2D values array: [header row, ...data rows]
                 var values = new List<IList<object>>();
                 var header = BuildHeaderRow(columns);
                 values.Add(header);
 
-                foreach (var entry in entries)
-                {
-                    values.Add(BuildDataRow(columns, (IGameDataEntry)entry));
-                }
+                foreach (var entry in entries) values.Add(BuildDataRow(columns, (IGameData)entry));
 
-                string range  = ResolveTabName(container);
-                string url    = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}?valueInputOption=USER_ENTERED";
-                string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
+                var range = ResolveTabName(container);
+                var url =
+                    $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}?valueInputOption=USER_ENTERED";
+                var authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
-                {
                     url += "&key=" + Uri.EscapeDataString(config.ApiKey);
-                }
 
                 var body = new JObject
                 {
-                    ["range"]          = range,
+                    ["range"] = range,
                     ["majorDimension"] = "ROWS",
-                    ["values"]         = JArray.FromObject(values)
+                    ["values"] = JArray.FromObject(values)
                 };
-                string bodyJson = body.ToString(Formatting.None);
+                var bodyJson = body.ToString(Formatting.None);
 
-                string response = await SendRequestAsync("PUT", url, authHeader, bodyJson);
+                var response = await SendRequestAsync("PUT", url, authHeader, bodyJson);
                 var responseObj = JObject.Parse(response);
-                int updated = (int?)responseObj["updatedCells"] ?? 0;
+                var updated = (int?)responseObj["updatedCells"] ?? 0;
 
-                string msg = $"Pushed {entries.Count} rows ({updated} cells updated) " +
-                             $"to tab '{range}' at {DateTime.Now:HH:mm:ss}.";
+                var msg = $"Pushed {entries.Count} rows ({updated} cells updated) " +
+                          $"to tab '{range}' at {DateTime.Now:HH:mm:ss}.";
                 Debug.Log($"[LiveGameDataEditor] GoogleSheets Push: {msg}");
                 return SyncResult.Ok(msg);
             }
             catch (GoogleSheetsAuthException ex)
             {
-                string msg = "Authentication failed: " + ex.Message;
+                var msg = "Authentication failed: " + ex.Message;
                 Debug.LogError($"[LiveGameDataEditor] GoogleSheets Push: {msg}");
                 return SyncResult.Fail(msg);
             }
             catch (GoogleSheetsApiException ex)
             {
-                string msg = $"API error ({ex.StatusCode}): " + ex.Message;
+                var msg = $"API error ({ex.StatusCode}): " + ex.Message;
                 Debug.LogError($"[LiveGameDataEditor] GoogleSheets Push: {msg}");
                 return SyncResult.Fail(msg);
             }
             catch (Exception ex)
             {
-                string msg = "Unexpected error: " + ex.Message;
+                var msg = "Unexpected error: " + ex.Message;
                 Debug.LogException(ex);
                 return SyncResult.Fail(msg);
             }
         }
 
         /// <summary>
-        /// Pulls data from the configured Google Sheet and overwrites the container's entries.
-        /// The operation is wrapped in <c>Undo.RecordObject</c> so it can be undone.
-        /// Returns a result indicating success or failure with a human-readable message.
+        ///     Pulls data from the configured Google Sheet and overwrites the container's entries.
+        ///     The operation is wrapped in <c>Undo.RecordObject</c> so it can be undone.
+        ///     Returns a result indicating success or failure with a human-readable message.
         /// </summary>
         public static async Task<SyncResult> PullAsync(IGameDataContainer container, GoogleSheetsConfig config)
         {
-            var so = container as UnityEngine.Object;
+            var so = container as Object;
             try
             {
                 ValidateConfig(config);
 
-                string range  = ResolveTabName(container);
-                string url    = $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}";
-                string authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
+                var range = ResolveTabName(container);
+                var url =
+                    $"{ApiBase}/{Uri.EscapeDataString(config.SpreadsheetId)}/values/{Uri.EscapeDataString(range)}";
+                var authHeader = await GoogleSheetsAuthService.GetAuthHeaderAsync(config);
                 if (config.AuthMode == GoogleSheetsAuthMode.ApiKey)
-                {
                     url += "?key=" + Uri.EscapeDataString(config.ApiKey);
-                }
 
-                string response = await SendRequestAsync("GET", url, authHeader, null);
+                var response = await SendRequestAsync("GET", url, authHeader, null);
                 var responseObj = JObject.Parse(response);
-                var rawValues   = (JArray)responseObj["values"];
+                var rawValues = (JArray)responseObj["values"];
 
                 if (rawValues == null || rawValues.Count == 0)
-                {
                     return SyncResult.Ok("Sheet is empty — no data imported.");
-                }
 
-                var columns  = GameDataColumnDefinition.FromType(container.EntryType);
-                var allRows  = ParseRawValues(rawValues);
+                var columns = GameDataColumnDefinition.FromType(container.EntryType);
+                var allRows = ParseRawValues(rawValues);
 
                 // First row is the header when HasHeaderRow is true.
-                IList<string> headerRow = config.HasHeaderRow && allRows.Count > 0
+                var headerRow = config.HasHeaderRow && allRows.Count > 0
                     ? allRows[0]
                     : BuildDefaultHeader(columns);
 
-                var mapping   = GoogleSheetsColumnMapper.BuildMapping(columns, headerRow);
-                int dataStart = config.HasHeaderRow ? 1 : 0;
+                var mapping = GoogleSheetsColumnMapper.BuildMapping(columns, headerRow);
+                var dataStart = config.HasHeaderRow ? 1 : 0;
 
-                if (so != null)
-                {
-                    Undo.RecordObject(so, "Pull from Google Sheets");
-                }
+                if (so != null) Undo.RecordObject(so, "Pull from Google Sheets");
 
-                IList entries = container.GetEntries();
+                var entries = container.GetEntries();
                 entries.Clear();
 
-                int importedCount = 0;
-                for (int ri = dataStart; ri < allRows.Count; ri++)
+                var importedCount = 0;
+                for (var ri = dataStart; ri < allRows.Count; ri++)
                 {
-                    var row   = allRows[ri];
-                    var entry = (IGameDataEntry)Activator.CreateInstance(container.EntryType);
+                    var row = allRows[ri];
+                    var entry = (IGameData)Activator.CreateInstance(container.EntryType);
 
                     foreach (var col in columns)
                     {
-                        if (!mapping.TryGetValue(col.Field.Name, out int ci))
-                        {
-                            continue; // column not in sheet; keep default
-                        }
-                        string raw = ci < row.Count ? row[ci] : "";
-                        object val = GoogleSheetsColumnMapper.StringToValue(col, raw);
+                        if (!mapping.TryGetValue(col.Field.Name,
+                                out var ci)) continue; // column not in sheet; keep default
+                        var raw = ci < row.Count ? row[ci] : "";
+                        var val = GoogleSheetsColumnMapper.StringToValue(col, raw);
                         col.Field.SetValue(entry, val);
                     }
 
@@ -223,30 +201,27 @@ namespace LiveGameDataEditor.GoogleSheets
                     importedCount++;
                 }
 
-                if (so != null)
-                {
-                    EditorUtility.SetDirty(so);
-                }
+                if (so != null) EditorUtility.SetDirty(so);
 
-                string msg = $"Pulled {importedCount} rows from tab '{range}' at {DateTime.Now:HH:mm:ss}.";
+                var msg = $"Pulled {importedCount} rows from tab '{range}' at {DateTime.Now:HH:mm:ss}.";
                 Debug.Log($"[LiveGameDataEditor] GoogleSheets Pull: {msg}");
                 return SyncResult.Ok(msg);
             }
             catch (GoogleSheetsAuthException ex)
             {
-                string msg = "Authentication failed: " + ex.Message;
+                var msg = "Authentication failed: " + ex.Message;
                 Debug.LogError($"[LiveGameDataEditor] GoogleSheets Pull: {msg}");
                 return SyncResult.Fail(msg);
             }
             catch (GoogleSheetsApiException ex)
             {
-                string msg = $"API error ({ex.StatusCode}): " + ex.Message;
+                var msg = $"API error ({ex.StatusCode}): " + ex.Message;
                 Debug.LogError($"[LiveGameDataEditor] GoogleSheets Pull: {msg}");
                 return SyncResult.Fail(msg);
             }
             catch (Exception ex)
             {
-                string msg = "Unexpected error: " + ex.Message;
+                var msg = "Unexpected error: " + ex.Message;
                 Debug.LogException(ex);
                 return SyncResult.Fail(msg);
             }
@@ -257,33 +232,28 @@ namespace LiveGameDataEditor.GoogleSheets
         private static IList<object> BuildHeaderRow(IReadOnlyList<GameDataColumnDefinition> columns)
         {
             var row = new List<object>(columns.Count);
-            foreach (var col in columns)
-            {
-                row.Add(col.Field.Name);
-            }
+            foreach (var col in columns) row.Add(col.Field.Name);
             return row;
         }
 
         private static IList<object> BuildDataRow(
             IReadOnlyList<GameDataColumnDefinition> columns,
-            IGameDataEntry entry)
+            IGameData entry)
         {
             var row = new List<object>(columns.Count);
             foreach (var col in columns)
             {
-                object val = col.Field.GetValue(entry);
+                var val = col.Field.GetValue(entry);
                 row.Add(GoogleSheetsColumnMapper.ValueToString(col, val));
             }
+
             return row;
         }
 
         private static IList<string> BuildDefaultHeader(IReadOnlyList<GameDataColumnDefinition> columns)
         {
             var header = new List<string>(columns.Count);
-            foreach (var col in columns)
-            {
-                header.Add(col.Field.Name);
-            }
+            foreach (var col in columns) header.Add(col.Field.Name);
             return header;
         }
 
@@ -295,21 +265,19 @@ namespace LiveGameDataEditor.GoogleSheets
             foreach (JArray rowArr in rawValues)
             {
                 var row = new List<string>(rowArr.Count);
-                foreach (var cell in rowArr)
-                {
-                    row.Add(cell.Type == JTokenType.Null ? "" : (string)cell);
-                }
+                foreach (var cell in rowArr) row.Add(cell.Type == JTokenType.Null ? "" : (string)cell);
                 result.Add(row);
             }
+
             return result;
         }
 
         // ── HTTP ───────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Sends an HTTP request using <see cref="UnityWebRequest"/> and returns the response body.
-        /// Must be called from the Unity main thread (editor context).
-        /// Throws <see cref="GoogleSheetsApiException"/> on HTTP errors.
+        ///     Sends an HTTP request using <see cref="UnityWebRequest" /> and returns the response body.
+        ///     Must be called from the Unity main thread (editor context).
+        ///     Throws <see cref="GoogleSheetsApiException" /> on HTTP errors.
         /// </summary>
         private static Task<string> SendRequestAsync(
             string method,
@@ -328,31 +296,28 @@ namespace LiveGameDataEditor.GoogleSheets
                 }
                 else
                 {
-                    byte[] bodyBytes = jsonBody != null ? Encoding.UTF8.GetBytes(jsonBody) : Array.Empty<byte>();
+                    var bodyBytes = jsonBody != null ? Encoding.UTF8.GetBytes(jsonBody) : Array.Empty<byte>();
                     req = new UnityWebRequest(url, method)
                     {
-                        uploadHandler   = new UploadHandlerRaw(bodyBytes),
+                        uploadHandler = new UploadHandlerRaw(bodyBytes),
                         downloadHandler = new DownloadHandlerBuffer()
                     };
                     req.SetRequestHeader("Content-Type", "application/json");
                 }
 
-                if (!string.IsNullOrEmpty(authHeader))
-                {
-                    req.SetRequestHeader("Authorization", authHeader);
-                }
+                if (!string.IsNullOrEmpty(authHeader)) req.SetRequestHeader("Authorization", authHeader);
 
                 var op = req.SendWebRequest();
                 op.completed += _ =>
                 {
-                    long code = req.responseCode;
-                    string body = req.downloadHandler?.text ?? "";
+                    var code = req.responseCode;
+                    var body = req.downloadHandler?.text ?? "";
 
                     if (req.result != UnityWebRequest.Result.Success)
                     {
                         // Try to extract a friendly message from the error response JSON.
-                        string apiMsg = TryExtractApiErrorMessage(body);
-                        string display = string.IsNullOrEmpty(apiMsg)
+                        var apiMsg = TryExtractApiErrorMessage(body);
+                        var display = string.IsNullOrEmpty(apiMsg)
                             ? $"{req.error} — {body}"
                             : apiMsg;
                         tcs.TrySetException(new GoogleSheetsApiException((int)code, display));
@@ -368,10 +333,7 @@ namespace LiveGameDataEditor.GoogleSheets
 
         private static string TryExtractApiErrorMessage(string json)
         {
-            if (string.IsNullOrEmpty(json))
-            {
-                return null;
-            }
+            if (string.IsNullOrEmpty(json)) return null;
             try
             {
                 var obj = JObject.Parse(json);
@@ -386,86 +348,77 @@ namespace LiveGameDataEditor.GoogleSheets
         // ── Utilities ──────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Resolves the Google Sheet tab name for the given container.
-        /// Reads <see cref="GoogleSheetsTabAttribute"/> from the container's concrete type;
-        /// falls back to the entry type name if the attribute is absent.
+        ///     Resolves the Google Sheet tab name for the given container.
+        ///     Reads <see cref="GoogleSheetsTabAttribute" /> from the container's concrete type;
+        ///     falls back to the entry type name if the attribute is absent.
         /// </summary>
         public static string ResolveTabName(IGameDataContainer container)
         {
-            var attr = container.GetType().GetCustomAttribute<GoogleSheetsTabAttribute>(inherit: true);
-            if (attr != null && !string.IsNullOrWhiteSpace(attr.TabName))
-            {
-                return attr.TabName;
-            }
+            var attr = container.GetType().GetCustomAttribute<GoogleSheetsTabAttribute>(true);
+            if (attr != null && !string.IsNullOrWhiteSpace(attr.TabName)) return attr.TabName;
             return container.EntryType.Name;
         }
 
         private static void ValidateConfig(GoogleSheetsConfig config)
         {
-            if (config == null)
-            {
-                throw new ArgumentNullException(nameof(config), "GoogleSheetsConfig is null.");
-            }
+            if (config == null) throw new ArgumentNullException(nameof(config), "GoogleSheetsConfig is null.");
             if (!config.IsConfigured())
-            {
                 throw new InvalidOperationException(
                     "GoogleSheetsConfig is not fully configured.\n" +
                     "Make sure SpreadsheetId and the relevant credential fields are filled in.");
-            }
         }
 
         private static string DescribeMissingFields(GoogleSheetsConfig config)
         {
-            if (string.IsNullOrWhiteSpace(config.SpreadsheetId))
-            {
-                return "Spreadsheet ID is empty";
-            }
+            if (string.IsNullOrWhiteSpace(config.SpreadsheetId)) return "Spreadsheet ID is empty";
             if (config.AuthMode == GoogleSheetsAuthMode.ApiKey && string.IsNullOrWhiteSpace(config.ApiKey))
-            {
                 return "API Key is empty";
-            }
             if (config.AuthMode == GoogleSheetsAuthMode.OAuth)
             {
-                if (string.IsNullOrWhiteSpace(config.OAuthClientId))
-                {
-                    return "OAuth Client ID is empty";
-                }
-                if (string.IsNullOrWhiteSpace(config.OAuthClientSecret))
-                {
-                    return "OAuth Client Secret is empty";
-                }
+                if (string.IsNullOrWhiteSpace(config.OAuthClientId)) return "OAuth Client ID is empty";
+                if (string.IsNullOrWhiteSpace(config.OAuthClientSecret)) return "OAuth Client Secret is empty";
             }
-            if (config.AuthMode == GoogleSheetsAuthMode.ServiceAccount && string.IsNullOrWhiteSpace(config.ServiceAccountJsonPath))
-            {
-                return "Service Account JSON path is empty";
-            }
+
+            if (config.AuthMode == GoogleSheetsAuthMode.ServiceAccount &&
+                string.IsNullOrWhiteSpace(config.ServiceAccountJsonPath)) return "Service Account JSON path is empty";
             return "unknown field";
         }
     }
 
     // ── Result type ─────────────────────────────────────────────────────────────
 
-    /// <summary>Result returned by <see cref="GoogleSheetsService"/> push/pull operations.</summary>
+    /// <summary>Result returned by <see cref="GoogleSheetsService" /> push/pull operations.</summary>
     public sealed class SyncResult
     {
-        public bool   Success { get; }
-        public string Message { get; }
-
         private SyncResult(bool success, string message)
         {
             Success = success;
             Message = message;
         }
 
-        public static SyncResult Ok(string message)   => new SyncResult(true, message);
-        public static SyncResult Fail(string message) => new SyncResult(false, message);
+        public bool Success { get; }
+        public string Message { get; }
+
+        public static SyncResult Ok(string message)
+        {
+            return new SyncResult(true, message);
+        }
+
+        public static SyncResult Fail(string message)
+        {
+            return new SyncResult(false, message);
+        }
     }
 
     /// <summary>Thrown when the Google Sheets REST API returns a non-success status code.</summary>
     public sealed class GoogleSheetsApiException : Exception
     {
-        public int StatusCode { get; }
         public GoogleSheetsApiException(int statusCode, string message)
-            : base(message) => StatusCode = statusCode;
+            : base(message)
+        {
+            StatusCode = statusCode;
+        }
+
+        public int StatusCode { get; }
     }
 }

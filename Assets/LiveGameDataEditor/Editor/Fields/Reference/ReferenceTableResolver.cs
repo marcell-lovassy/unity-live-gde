@@ -8,62 +8,10 @@ using UnityEngine;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Discovers target table rows for string-backed table references.
+    ///     Discovers target table rows for string-backed table references.
     /// </summary>
     public static class ReferenceTableResolver
     {
-        public sealed class Option
-        {
-            public string Key { get; }
-            public string Display { get; }
-
-            public Option(string key, string display)
-            {
-                Key = key;
-                Display = display;
-            }
-        }
-
-        public sealed class Result
-        {
-            public TableReferenceAttribute Attribute { get; }
-            public Type TargetTableType => Attribute?.TargetTableType;
-            public List<ScriptableObject> TargetAssets { get; } = new();
-            public List<Option> Options { get; } = new();
-            public List<string> Errors { get; } = new();
-            public bool HasDuplicateKeys { get; private set; }
-            public bool HasKeyField => KeyField != null;
-            public FieldInfo KeyField { get; private set; }
-            public FieldInfo DisplayField { get; private set; }
-            public Type TargetEntryType { get; private set; }
-
-            public Result(TableReferenceAttribute attribute)
-            {
-                Attribute = attribute;
-            }
-
-            public bool ContainsKey(string key)
-            {
-                return Options.Any(option => string.Equals(option.Key, key, StringComparison.Ordinal));
-            }
-
-            internal void SetTargetEntryType(Type entryType)
-            {
-                TargetEntryType = entryType;
-            }
-
-            internal void SetFields(FieldInfo keyField, FieldInfo displayField)
-            {
-                KeyField = keyField;
-                DisplayField = displayField;
-            }
-
-            internal void SetDuplicateKeys()
-            {
-                HasDuplicateKeys = true;
-            }
-        }
-
         public static bool IsReferenceField(FieldInfo field)
         {
             return field.GetCustomAttribute<TableReferenceAttribute>() != null;
@@ -143,10 +91,7 @@ namespace LiveGameDataEditor.Editor
 
         public static string GetOptionLabel(Option option)
         {
-            if (option == null || string.IsNullOrEmpty(option.Key))
-            {
-                return "(None)";
-            }
+            if (option == null || string.IsNullOrEmpty(option.Key)) return "(None)";
 
             return string.IsNullOrEmpty(option.Display)
                 ? option.Key
@@ -160,10 +105,7 @@ namespace LiveGameDataEditor.Editor
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 var asset = AssetDatabase.LoadAssetAtPath(path, result.TargetTableType) as ScriptableObject;
-                if (asset == null || asset is not IGameDataContainer)
-                {
-                    continue;
-                }
+                if (asset == null || asset is not IGameDataContainer) continue;
                 result.TargetAssets.Add(asset);
             }
         }
@@ -174,19 +116,13 @@ namespace LiveGameDataEditor.Editor
 
             foreach (var asset in result.TargetAssets)
             {
-                if (asset is not IGameDataContainer container)
-                {
-                    continue;
-                }
+                if (asset is not IGameDataContainer container) continue;
 
                 foreach (var row in container.GetEntries())
                 {
                     var rawKey = result.KeyField.GetValue(row);
                     var key = rawKey?.ToString() ?? string.Empty;
-                    if (string.IsNullOrEmpty(key))
-                    {
-                        continue;
-                    }
+                    if (string.IsNullOrEmpty(key)) continue;
 
                     var display = result.DisplayField?.GetValue(row)?.ToString() ?? string.Empty;
                     result.Options.Add(new Option(key, display));
@@ -198,13 +134,62 @@ namespace LiveGameDataEditor.Editor
 
             foreach (var pair in keyCounts)
             {
-                if (pair.Value <= 1)
-                {
-                    continue;
-                }
+                if (pair.Value <= 1) continue;
 
                 result.SetDuplicateKeys();
                 result.Errors.Add($"Duplicate key '{pair.Key}' in {result.TargetTableType.Name}.");
+            }
+        }
+
+        public sealed class Option
+        {
+            public Option(string key, string display)
+            {
+                Key = key;
+                Display = display;
+            }
+
+            public string Key { get; }
+            public string Display { get; }
+        }
+
+        public sealed class Result
+        {
+            public Result(TableReferenceAttribute attribute)
+            {
+                Attribute = attribute;
+            }
+
+            public TableReferenceAttribute Attribute { get; }
+            public Type TargetTableType => Attribute?.TargetTableType;
+            public List<ScriptableObject> TargetAssets { get; } = new();
+            public List<Option> Options { get; } = new();
+            public List<string> Errors { get; } = new();
+            public bool HasDuplicateKeys { get; private set; }
+            public bool HasKeyField => KeyField != null;
+            public FieldInfo KeyField { get; private set; }
+            public FieldInfo DisplayField { get; private set; }
+            public Type TargetEntryType { get; private set; }
+
+            public bool ContainsKey(string key)
+            {
+                return Options.Any(option => string.Equals(option.Key, key, StringComparison.Ordinal));
+            }
+
+            internal void SetTargetEntryType(Type entryType)
+            {
+                TargetEntryType = entryType;
+            }
+
+            internal void SetFields(FieldInfo keyField, FieldInfo displayField)
+            {
+                KeyField = keyField;
+                DisplayField = displayField;
+            }
+
+            internal void SetDuplicateKeys()
+            {
+                HasDuplicateKeys = true;
             }
         }
     }

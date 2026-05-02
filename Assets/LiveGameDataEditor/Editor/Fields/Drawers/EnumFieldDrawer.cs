@@ -1,5 +1,4 @@
 using System;
-using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
 namespace LiveGameDataEditor.Editor
@@ -14,12 +13,9 @@ namespace LiveGameDataEditor.Editor
         public VisualElement CreateCell(TableFieldContext context)
         {
             var enumValue = context.CurrentValue as Enum
-                ?? (Enum)Enum.GetValues(context.FieldType).GetValue(0);
+                            ?? (Enum)Enum.GetValues(context.FieldType).GetValue(0);
             var field = new EnumField(enumValue);
-            field.RegisterValueChangedCallback(evt =>
-            {
-                context.SetValue(evt.newValue);
-            });
+            field.RegisterValueChangedCallback(evt => { context.SetValue(evt.newValue); });
             return field;
         }
     }

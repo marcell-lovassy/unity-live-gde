@@ -3,9 +3,9 @@ using System;
 namespace LiveGameDataEditor
 {
     /// <summary>
-    /// Renders an enum field as a flags editor.
+    ///     Renders an enum field as a flags editor.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Field)]
     public sealed class TableFlagsAttribute : Attribute
     {
     }

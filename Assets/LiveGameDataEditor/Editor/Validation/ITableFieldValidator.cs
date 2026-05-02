@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Validates one field on one row.
+    ///     Validates one field on one row.
     /// </summary>
     public interface ITableFieldValidator
     {

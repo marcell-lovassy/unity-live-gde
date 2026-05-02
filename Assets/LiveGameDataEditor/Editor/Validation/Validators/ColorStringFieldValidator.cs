@@ -23,19 +23,14 @@ namespace LiveGameDataEditor.Editor
             }
 
             var value = context.CurrentValue as string;
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                yield break;
-            }
+            if (string.IsNullOrWhiteSpace(value)) yield break;
 
             if (!ColorStringUtility.TryParseHtmlColor(value, out _))
-            {
                 yield return new ValidationResult(
                     context.RowIndex,
                     context.FieldInfo.Name,
                     "Invalid color format. Expected #RRGGBB or #RRGGBBAA.",
                     ValidationSeverity.Error);
-            }
         }
     }
 }

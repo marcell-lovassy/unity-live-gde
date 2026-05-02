@@ -5,25 +5,15 @@ using System.Reflection;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Context passed to validators that inspect one reflected field on one row.
+    ///     Context passed to validators that inspect one reflected field on one row.
     /// </summary>
     public sealed class TableValidationContext
     {
-        public IGameDataContainer Container { get; }
-        public IReadOnlyList<IGameDataEntry> Entries { get; }
-        public IReadOnlyList<GameDataColumnDefinition> Columns { get; }
-        public IGameDataEntry Entry { get; }
-        public int RowIndex { get; }
-        public GameDataColumnDefinition Column { get; }
-        public FieldInfo FieldInfo { get; }
-        public Type FieldType { get; }
-        public object CurrentValue { get; }
-
         public TableValidationContext(
             IGameDataContainer container,
-            IReadOnlyList<IGameDataEntry> entries,
+            IReadOnlyList<IGameData> entries,
             IReadOnlyList<GameDataColumnDefinition> columns,
-            IGameDataEntry entry,
+            IGameData entry,
             int rowIndex,
             GameDataColumnDefinition column,
             object currentValue)
@@ -38,5 +28,15 @@ namespace LiveGameDataEditor.Editor
             FieldType = column.FieldType;
             CurrentValue = currentValue;
         }
+
+        public IGameDataContainer Container { get; }
+        public IReadOnlyList<IGameData> Entries { get; }
+        public IReadOnlyList<GameDataColumnDefinition> Columns { get; }
+        public IGameData Entry { get; }
+        public int RowIndex { get; }
+        public GameDataColumnDefinition Column { get; }
+        public FieldInfo FieldInfo { get; }
+        public Type FieldType { get; }
+        public object CurrentValue { get; }
     }
 }

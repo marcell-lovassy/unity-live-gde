@@ -2,33 +2,27 @@ using System;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = UnityEngine.Object;
 
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Top-of-window bar that shows the currently loaded data asset and provides
-    /// "Create New…" and "✕ Close" controls.
-    ///
-    /// Asset selection is handled by the <see cref="GameDataBrowserPanel"/> sidebar.
-    /// This bar is purely informational — it shows what is loaded and lets you close it.
-    ///
-    /// Layout (left → right):
-    ///   [Asset name label]  [Asset path label (muted)]  [✕]  [Create New…]
+    ///     Top-of-window bar that shows the currently loaded data asset and provides
+    ///     "Create New…" and "✕ Close" controls.
+    ///     Asset selection is handled by the <see cref="GameDataBrowserPanel" /> sidebar.
+    ///     This bar is purely informational — it shows what is loaded and lets you close it.
+    ///     Layout (left → right):
+    ///     [Asset name label]  [Asset path label (muted)]  [✕]  [Create New…]
     /// </summary>
     public class GameDataSelectionBar : VisualElement
     {
-        /// <summary>Raised when a valid IGameDataContainer is selected or newly created.</summary>
-        public event Action<IGameDataContainer> OnContainerSelected;
-
-        /// <summary>Raised when the user clicks ✕ to unload the current container.</summary>
-        public event Action OnContainerCleared;
-
-        private Label _nameLabel;
-        private Label _pathLabel;
         private Button _clearBtn;
 
         // The currently loaded SO (null when nothing is selected)
         private ScriptableObject _current;
+
+        private Label _nameLabel;
+        private Label _pathLabel;
 
         public GameDataSelectionBar()
         {
@@ -36,10 +30,16 @@ namespace LiveGameDataEditor.Editor
             Build();
         }
 
+        /// <summary>Raised when a valid IGameDataContainer is selected or newly created.</summary>
+        public event Action<IGameDataContainer> OnContainerSelected;
+
+        /// <summary>Raised when the user clicks ✕ to unload the current container.</summary>
+        public event Action OnContainerCleared;
+
         // ── Public API ─────────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Updates the info label row count. Call after the table is populated.
+        ///     Updates the info label row count. Call after the table is populated.
         /// </summary>
         public void UpdateInfo(IGameDataContainer container)
         {
@@ -50,17 +50,18 @@ namespace LiveGameDataEditor.Editor
                 _clearBtn.style.display = DisplayStyle.None;
                 return;
             }
-            int count       = container.GetEntries()?.Count ?? 0;
-            string typeName = GameDataTypeRegistry.GetEntryDisplayName(container.EntryType);
+
+            var count = container.GetEntries()?.Count ?? 0;
+            var typeName = GameDataTypeRegistry.GetEntryDisplayName(container.EntryType);
             _nameLabel.text = $"{(container as ScriptableObject)?.name ?? typeName}";
             _pathLabel.text = $"{typeName}  ·  {count} row{(count == 1 ? "" : "s")}  ·  " +
-                              AssetDatabase.GetAssetPath(container as UnityEngine.Object);
+                              AssetDatabase.GetAssetPath(container as Object);
             _clearBtn.style.display = DisplayStyle.Flex;
         }
 
         /// <summary>
-        /// Loads <paramref name="so"/> as the current container, firing
-        /// <see cref="OnContainerSelected"/> if it is a valid <see cref="IGameDataContainer"/>.
+        ///     Loads <paramref name="so" /> as the current container, firing
+        ///     <see cref="OnContainerSelected" /> if it is a valid <see cref="IGameDataContainer" />.
         /// </summary>
         public void SelectContainer(ScriptableObject so)
         {
@@ -88,7 +89,10 @@ namespace LiveGameDataEditor.Editor
         }
 
         /// <summary>Programmatically opens the "Create New…" context menu.</summary>
-        public void TriggerCreateNew() => OnCreateNewClicked();
+        public void TriggerCreateNew()
+        {
+            OnCreateNewClicked();
+        }
 
         // ── UI construction ────────────────────────────────────────────────────────
 
@@ -146,21 +150,19 @@ namespace LiveGameDataEditor.Editor
             var menu = new GenericMenu();
             foreach (var entryType in entryTypes)
             {
-                var type  = entryType;
-                string label = GameDataTypeRegistry.GetEntryDisplayName(type);
+                var type = entryType;
+                var label = GameDataTypeRegistry.GetEntryDisplayName(type);
                 menu.AddItem(new GUIContent(label), false, () =>
                 {
                     var container = GameDataAssetFactory.CreateForEntryType(type);
-                    if (container == null)
-                    {
-                        return;
-                    }
+                    if (container == null) return;
 
                     _current = container as ScriptableObject;
                     UpdateInfo(container);
                     OnContainerSelected?.Invoke(container);
                 });
             }
+
             menu.ShowAsContext();
         }
     }

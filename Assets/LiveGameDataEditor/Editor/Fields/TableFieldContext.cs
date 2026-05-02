@@ -5,28 +5,19 @@ using System.Reflection;
 namespace LiveGameDataEditor.Editor
 {
     /// <summary>
-    /// Context passed to table field drawers when constructing a cell.
+    ///     Context passed to table field drawers when constructing a cell.
     /// </summary>
     public sealed class TableFieldContext
     {
-        public IGameDataEntry SourceEntry { get; }
-        public IReadOnlyList<GameDataColumnDefinition> Columns { get; }
-        public GameDataColumnDefinition Column { get; }
-        public FieldInfo FieldInfo { get; }
-        public Type FieldType { get; }
-        public object CurrentValue { get; }
-        public Action<object> SetValue { get; }
-        public Action RebuildRequested { get; }
-
         public TableFieldContext(
-            IGameDataEntry sourceEntry,
+            IGameData source,
             IReadOnlyList<GameDataColumnDefinition> columns,
             GameDataColumnDefinition column,
             object currentValue,
             Action<object> setValue,
             Action rebuildRequested)
         {
-            SourceEntry = sourceEntry;
+            Source = source;
             Columns = columns;
             Column = column;
             FieldInfo = column.Field;
@@ -35,5 +26,14 @@ namespace LiveGameDataEditor.Editor
             SetValue = setValue;
             RebuildRequested = rebuildRequested;
         }
+
+        public IGameData Source { get; }
+        public IReadOnlyList<GameDataColumnDefinition> Columns { get; }
+        public GameDataColumnDefinition Column { get; }
+        public FieldInfo FieldInfo { get; }
+        public Type FieldType { get; }
+        public object CurrentValue { get; }
+        public Action<object> SetValue { get; }
+        public Action RebuildRequested { get; }
     }
 }
