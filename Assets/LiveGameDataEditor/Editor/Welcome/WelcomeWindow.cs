@@ -28,6 +28,11 @@ namespace LiveGameDataEditor.Editor
         private const string CloudCredentialsUrl = "https://console.cloud.google.com/apis/credentials";
         private const string CloudConsentUrl = "https://console.cloud.google.com/apis/credentials/consent";
         private const string CloudSheetsApiUrl = "https://console.cloud.google.com/apis/library/sheets.googleapis.com";
+        private const string DocumentationUrl =
+            "https://github.com/marcell-lovassy/unity-live-gde/blob/main/Assets/LiveGameDataEditor/Documentation/UserGuide.md";
+        private const string SupportUrl = "https://github.com/marcell-lovassy/unity-live-gde/issues";
+        private const string AssetStoreUrl =
+            "https://assetstore.unity.com/packages/tools/utilities/game-data-spreadsheet-editor";
 
         private Page _activePage = Page.Welcome;
         private VisualElement _contentArea;
@@ -778,9 +783,9 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(SubHeading("Links"));
 
-            scroll.Add(LinkButton("📄  Documentation", "https://github.com"));
-            scroll.Add(LinkButton("🐛  Report an Issue", "https://github.com"));
-            scroll.Add(LinkButton("⭐  Rate on the Asset Store", "https://assetstore.unity.com"));
+            scroll.Add(LinkButton("📄  Documentation", DocumentationUrl));
+            scroll.Add(LinkButton("🐛  Report an Issue", SupportUrl));
+            scroll.Add(LinkButton("⭐  Rate on the Asset Store", AssetStoreUrl));
 
             scroll.Add(Separator());
             scroll.Add(SubHeading("License"));

@@ -1,11 +1,38 @@
 Game Data Spreadsheet Editor - Third-Party Notices
 
-This package depends on the Unity Package Manager package:
+Unity Package Manager Dependencies
+----------------------------------
 
-com.unity.nuget.newtonsoft-json
+com.unity.nuget.newtonsoft-json 3.2.1
 
-Newtonsoft.Json is distributed under the MIT License. Unity provides this dependency through the Unity Package Manager package `com.unity.nuget.newtonsoft-json`.
+Used for JSON import/export and Google Sheets REST payload handling.
+
+Unity distributes this package under the Unity Companion License for Unity-dependent projects. The package contains Newtonsoft.Json and related Unity adaptations distributed under MIT licenses. See the Unity Package Manager package metadata and third-party notices for complete license text.
+
+com.unity.ugui 2.0.0
+
+Used by the included runtime sample scene for Canvas layout and TextMesh Pro UI components.
+
+Unity distributes uGUI under the Unity Companion License for Unity-dependent projects. See the Unity Package Manager package metadata for complete license text.
+
+Included TextMesh Pro Essentials Assets
+---------------------------------------
+
+The package includes TextMesh Pro Essentials assets under Assets/TextMesh Pro so the runtime sample scene and SampleEnemy prefab work immediately after import.
+
+Included TMP settings, shaders, materials, and related Unity-provided assets are supplied through Unity's TextMesh Pro/uGUI workflow for Unity projects.
+
+LiberationSans font files are included with the TextMesh Pro Essentials import and are licensed under the SIL Open Font License, Version 1.1. The full license text is included at:
+
+Assets/TextMesh Pro/Fonts/LiberationSans - OFL.txt
+
+EmojiOne sample sprite assets are included with the attribution file supplied by the TextMesh Pro Essentials import. The attribution file is included at:
+
+Assets/TextMesh Pro/Sprites/EmojiOne Attribution.txt
+
+Google Sheets API
+-----------------
 
 This package can optionally connect to Google Sheets through Google APIs when the user configures their own Google Cloud credentials. No Google credentials, API keys, service account key files, or private spreadsheet IDs are included with this package.
 
-Google API usage is subject to Google's terms, quotas, permissions, and possible costs. Users are responsible for configuring their own Google Cloud project and credentials.
+Google API usage is subject to Google's terms, quotas, permissions, and possible costs. Users are responsible for configuring their own Google Cloud project, credentials, spreadsheet permissions, quotas, and billing settings.

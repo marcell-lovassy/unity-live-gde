@@ -14,7 +14,7 @@ The project is built with **UI Toolkit** and split into clean runtime/editor ass
 | **Tested on** | Unity 6 (6000.0.x) |
 | **UI System** | UI Toolkit |
 | **Primary data model** | ScriptableObject containers |
-| **Required UPM dependency** | `com.unity.nuget.newtonsoft-json` |
+| **Required UPM dependencies** | `com.unity.nuget.newtonsoft-json`, `com.unity.ugui` |
 | **Runtime assembly** | `LiveGameDataEditor.Runtime` |
 | **Editor assembly** | `LiveGameDataEditor.Editor` |
 
@@ -42,6 +42,7 @@ This separation keeps the package practical for production projects: runtime dat
 - **Google Sheets integration** for pull/push workflows.
 - **UI Toolkit editor UI** with styling in USS.
 - **Runtime/editor asmdef isolation** to keep builds clean.
+- **Runtime lookup sample** with TextMesh Pro UI labels and uGUI layout components.
 
 ---
 
@@ -73,6 +74,12 @@ namespace LiveGameDataEditor
 
 ```text
 Assets/
+  TextMesh Pro/
+    Fonts/
+    Resources/
+    Shaders/
+    Sprites/
+
   LiveGameDataEditor/
     Runtime/
       GameDataEntry.cs
@@ -176,6 +183,17 @@ These files describe implementation boundaries, Unity workflow rules, validation
 Google Sheets sync is optional. The editor works offline for local ScriptableObject editing, JSON export/import, and CSV export/import.
 
 When Google Sheets sync is enabled, users must provide their own Google Cloud credentials. API keys, OAuth credentials, service account key files, private spreadsheet IDs, and related secrets should not be committed to public source control. Google API usage is subject to Google's terms, quotas, permissions, and possible costs.
+
+## Unity Package Dependencies And Included Sample Assets
+
+This project intentionally keeps the following Unity Package Manager dependencies:
+
+- `com.unity.nuget.newtonsoft-json` for JSON import/export and Google Sheets REST payload handling.
+- `com.unity.ugui` for the runtime sample scene's Canvas layout and TextMesh Pro UI components.
+
+The runtime sample references TextMesh Pro types from Unity's uGUI package, so `LiveGameDataEditor.Runtime` keeps its TextMesh Pro assembly reference. The package also includes TextMesh Pro Essentials under `Assets/TextMesh Pro` so `RuntimeLookupDemo.unity` and `SampleEnemy.prefab` work immediately after import. These assets include Unity-provided TMP settings/shaders/materials, the LiberationSans font files under the SIL Open Font License 1.1, and EmojiOne sample sprite assets with the attribution file supplied by Unity's TextMesh Pro Essentials import.
+
+Development-only IDE integrations such as `com.unity.ide.rider` are not required by the package and are intentionally excluded.
 
 ---
 

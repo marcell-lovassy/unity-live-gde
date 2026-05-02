@@ -915,7 +915,6 @@
     margin-top: 16px;
     margin-bottom: 4px;
     flex-wrap: wrap;
-    row-gap: 4px;
 }
 
 .welcome-wizard-test-btn {
@@ -938,6 +937,7 @@
     color: #888888;
     flex-shrink: 1;
     white-space: normal;
+    margin-bottom: 4px;
 }
 
 .welcome-wizard-test-status--ok {

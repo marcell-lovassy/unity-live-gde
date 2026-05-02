@@ -14,6 +14,8 @@ The package is split into:
 
 - Unity 2022.3 LTS or newer.
 - `com.unity.nuget.newtonsoft-json` 3.2.1 or newer.
+- `com.unity.ugui` 2.0.0 or newer for the included runtime sample scene.
+- TextMesh Pro support from Unity's uGUI package for the included sample UI.
 - Internet access only when using Google Sheets sync.
 
 ## Quick Start
@@ -182,7 +184,7 @@ public sealed class SampleEnemy : MonoBehaviour
 }
 ```
 
-Open `Assets/LiveGameDataEditor/Data/Samples/RuntimeLookupDemo.unity` to see this pattern. The demo scene contains a `DataControllers` object, three `SampleEnemy` objects with IDs, and a small runtime reporter that logs resolved enemy and weapon data when entering Play Mode. The reporter avoids optional runtime UI dependencies so it compiles in a clean Unity project.
+Open `Assets/LiveGameDataEditor/Data/Samples/RuntimeLookupDemo.unity` to see this pattern. The demo scene contains a `DataControllers` object, three `SampleEnemy` objects with IDs, TextMesh Pro UI labels on the sample enemy prefab, and a small runtime reporter that logs resolved enemy and weapon data when entering Play Mode.
 
 ## Google Sheets Sync
 
@@ -200,6 +202,17 @@ API Key mode is pull-only and requires a publicly readable sheet. OAuth and Serv
 
 Google API usage is subject to Google's terms, quotas, permissions, and possible costs. Users are responsible for configuring their own Google Cloud project and credentials.
 
+## Package Dependencies And Licenses
+
+The editor package intentionally depends on:
+
+- `com.unity.nuget.newtonsoft-json` for JSON import/export and Google Sheets REST payload handling.
+- `com.unity.ugui` for the runtime sample scene's Canvas layout and TextMesh Pro UI components.
+
+The sample scene references TextMesh Pro UI components, so the package includes TextMesh Pro Essentials assets under `Assets/TextMesh Pro`. Keep those assets and their `.meta` files if you want the sample scene and `SampleEnemy.prefab` to work immediately after import.
+
+Included third-party/license disclosures are summarized in `Assets/LiveGameDataEditor/Third-Party Notices.txt`. The TextMesh Pro Essentials import includes LiberationSans font files under the SIL Open Font License 1.1 and EmojiOne sample sprite attribution under `Assets/TextMesh Pro/Sprites/EmojiOne Attribution.txt`.
+
 ## Included Samples
 
 The package includes sample data assets in `Assets/LiveGameDataEditor/Data/Samples`:
@@ -208,6 +221,7 @@ The package includes sample data assets in `Assets/LiveGameDataEditor/Data/Sampl
 - `EnemyDataEntryContainer.asset` demonstrates references, colors, asset GUIDs, range fields, flags, numeric fields, enum fields, list fields, and boolean fields.
 - `WeaponDataContainer.asset` demonstrates a referenced table with `[TableKey]` and `[TableDisplay]`.
 - `RuntimeLookupDemo.unity` demonstrates runtime lookup through data controller components.
+- TextMesh Pro Essentials assets under `Assets/TextMesh Pro` support the runtime sample prefab UI.
 - `GoogleSheetsConfig.asset` is a blank configuration asset for setup testing.
 
 These samples are safe to duplicate, edit, or remove in user projects.

@@ -4,7 +4,11 @@
 
 Google Sheets sync is optional. When enabled, it uses Google APIs and requires the user to configure their own Google Cloud credentials and spreadsheet permissions. Google API usage is subject to Google's terms, quotas, permissions, and possible costs. No API keys, OAuth credentials, service account key files, or private spreadsheet IDs are included with this package.
 
-This package depends on `com.unity.nuget.newtonsoft-json`, provided through Unity Package Manager.
+This package depends on Unity Package Manager packages `com.unity.nuget.newtonsoft-json` and `com.unity.ugui`.
+
+The included runtime sample uses TextMesh Pro UI components through Unity's uGUI/TextMesh Pro support. TextMesh Pro Essentials assets are included under `Assets/TextMesh Pro` so the sample scene and prefab render immediately after import. Included font/sprite attribution and license files are preserved with their `.meta` files.
+
+Suggested first submission price: USD 29.99.
 
 ## Short Description
 
@@ -32,13 +36,20 @@ Custom field attributes make common game-data workflows easier without changing 
 - JSON and CSV import/export.
 - Optional Google Sheets pull/push workflow.
 - Runtime/editor assembly separation.
-- Included sample data assets, runtime lookup demo scene, and offline documentation.
+- Included sample data assets, runtime lookup demo scene with TextMesh Pro UI labels, and offline documentation.
 
 ## Runtime Sample
 
-The package includes a small runtime demo scene that shows one `DataControllers` GameObject with data-set controller components such as `EnemyDataController` and `WeaponDataController`. Scene objects store row IDs and resolve ScriptableObject entries at runtime through `GetEntryById` / `TryGetEntryById`. The demo logs resolved data in Play Mode without requiring extra runtime UI packages.
+The package includes a small runtime demo scene that shows one `DataControllers` GameObject with data-set controller components such as `EnemyDataController` and `WeaponDataController`. Scene objects store row IDs and resolve ScriptableObject entries at runtime through `GetEntryById` / `TryGetEntryById`. The sample prefab displays resolved values with TextMesh Pro UI labels and also logs resolved data in Play Mode.
 
 Unity asset GUID fields are intended for editor-friendly storage and interchange. Runtime builds cannot use `AssetDatabase`, so projects that need runtime asset loading by GUID should add a catalog, Addressables mapping, Resources mapping, or another game-specific loading layer.
+
+## Dependency And License Notes
+
+- `com.unity.nuget.newtonsoft-json` is used for JSON serialization and Google Sheets REST payload handling.
+- `com.unity.ugui` is used by the included runtime sample for Canvas layout and TextMesh Pro UI components.
+- TextMesh Pro Essentials assets are included under `Assets/TextMesh Pro`, including TMP settings, shaders, materials, the LiberationSans font files under the SIL Open Font License 1.1, and EmojiOne sample sprite attribution.
+- Google Sheets sync is optional and requires each user to configure their own Google Cloud project, credentials, permissions, and quota/cost management.
 
 ## Suggested Keywords
 

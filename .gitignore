@@ -31,6 +31,7 @@
 /[Aa]ssets/Plugins/Editor/JetBrains*
 # Jetbrains Rider personal-layer settings
 *.DotSettings.user
+.idea/
 
 # Visual Studio cache directory
 .vs/
@@ -98,3 +99,6 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Agent scratch plans and local notes
+/Docs/AgentDoc/temp/
