@@ -1,5 +1,5 @@
 /* ============================================================
-   Game Data Spreadsheet Editor — UI Stylesheet
+   Game Data Spreadsheet Editor - UI Stylesheet
    Compatible with Unity 2022.3+ UI Toolkit dark theme.
    ============================================================ */
 
@@ -509,7 +509,7 @@
     color: #7ec8e3;
 }
 
-/* Tab name info label (e.g. "→ tab: Enemies") */
+/* Tab name info label (e.g. "> tab: Enemies") */
 .sheets-tab-info {
     font-size: 10px;
     color: #5a8a9a;
@@ -839,10 +839,12 @@
 }
 
 .welcome-feature-icon {
-    font-size: 18px;
-    width: 28px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    width: 38px;
     flex-shrink: 0;
-    margin-top: 1px;
+    margin-top: 2px;
+    color: #7ec8e3;
 }
 
 .welcome-feature-title {
@@ -1104,7 +1106,7 @@
     -unity-font-style: bold;
 }
 
-/* Sub-steps (3a, 3b …) */
+/* Sub-steps (3a, 3b, etc.) */
 .welcome-wizard-substep {
     flex-direction: row;
     align-items: flex-start;

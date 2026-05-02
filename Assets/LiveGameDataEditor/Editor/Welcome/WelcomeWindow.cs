@@ -11,10 +11,10 @@ namespace LiveGameDataEditor.Editor
     /// <summary>
     ///     Welcome / onboarding window shown on first install and reopenable from the menu.
     ///     Four tabs:
-    ///     Welcome       — elevator pitch + feature overview
-    ///     Quick Start   — step-by-step guide to first use
-    ///     Sheets Setup  — interactive wizard: creates GoogleSheetsConfig and fills it in inline
-    ///     About         — version info + external links
+    ///     Welcome       - elevator pitch + feature overview
+    ///     Quick Start   - step-by-step guide to first use
+    ///     Sheets Setup  - interactive wizard: creates GoogleSheetsConfig and fills it in inline
+    ///     About         - version info + external links
     ///     Auto-shown via <see cref="WelcomeWindowInitializer" /> on the first editor launch
     ///     after installation. Suppressed when the "Don't show on startup" checkbox is ticked.
     /// </summary>
@@ -101,7 +101,7 @@ namespace LiveGameDataEditor.Editor
             title.AddToClassList("welcome-banner-title");
             banner.Add(title);
 
-            var subtitle = new Label("Spreadsheet-style game data editing — right inside Unity");
+            var subtitle = new Label("Spreadsheet-style game data editing - right inside Unity");
             subtitle.AddToClassList("welcome-banner-subtitle");
             banner.Add(subtitle);
 
@@ -130,10 +130,10 @@ namespace LiveGameDataEditor.Editor
 
             var pages = new[]
             {
-                (Page.Welcome, "🏠  Welcome"),
-                (Page.QuickStart, "⚡  Quick Start"),
-                (Page.SheetsSetup, "☁  Sheets Setup"),
-                (Page.About, "ℹ  About")
+                (Page.Welcome, "Welcome"),
+                (Page.QuickStart, "Quick Start"),
+                (Page.SheetsSetup, "Sheets Setup"),
+                (Page.About, "About")
             };
 
             _tabButtons = new VisualElement[pages.Length];
@@ -223,19 +223,19 @@ namespace LiveGameDataEditor.Editor
             scroll.Add(Heading("Welcome!"));
             scroll.Add(Para(
                 "Game Data Spreadsheet Editor brings a spreadsheet-style workflow to Unity. " +
-                "Edit your ScriptableObject data in a resizable, sortable, filterable table — " +
+                "Edit your ScriptableObject data in a resizable, sortable, filterable table - " +
                 "No custom tools or coding required."));
 
             scroll.Add(Heading("Features"));
 
             var features = new[]
             {
-                ("📋", "Table editor", "Edit game data like Excel, directly in Unity, sort, filter and search"),
-                ("✅", "Validation", "Prevent broken data (duplicate IDs, invalid values)"),
-                ("🔄", "Multi-container", "Switch between data assets with a browser panel"),
-                ("📊", "CSV & JSON", "Import and export in one click"),
-                ("☁", "Google Sheets Sync", "Sign in with Google and sync instantly"),
-                ("↕", "Drag to reorder", "Reorder rows with a handle — undo supported")
+                ("EDIT", "Table editor", "Edit game data like Excel, directly in Unity, sort, filter and search"),
+                ("OK", "Validation", "Prevent broken data (duplicate IDs, invalid values)"),
+                ("DATA", "Multi-container", "Switch between data assets with a browser panel"),
+                ("I/O", "CSV & JSON", "Import and export in one click"),
+                ("SYNC", "Google Sheets Sync", "Sign in with Google and sync instantly"),
+                ("MOVE", "Drag to reorder", "Reorder rows with a handle - undo supported")
             };
 
             foreach (var (icon, title, desc) in features) scroll.Add(FeatureRow(icon, title, desc));
@@ -245,7 +245,7 @@ namespace LiveGameDataEditor.Editor
                     Close();
                     EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
                 })
-                { text = "Open Game Data Spreadsheet Editor  →" };
+                { text = "Open Game Data Spreadsheet Editor" };
             openBtn.AddToClassList("welcome-cta-btn");
             scroll.Add(openBtn);
 
@@ -264,11 +264,11 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(Step(1, "Create a data container",
                 "In the Project window:\n" +
-                "Assets → Create → Game Data Spreadsheet Editor / Enemy Data Container\n" +
+                "Assets > Create > Game Data Spreadsheet Editor / Enemy Data Container\n" +
                 "(or any container type you've defined)"));
 
             scroll.Add(Step(2, "Open the editor",
-                "Tools → GDE → Open Editor \n" +
+                "Tools > GDE > Open Editor \n" +
                 "The editor opens as a dockable window."));
 
             scroll.Add(Step(3, "Load your container",
@@ -281,9 +281,9 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(Step(5, "Export (optional)",
                 "Use the toolbar buttons to:\n" +
-                "• Export → JSON  or  Export → CSV\n" +
-                "• Import ← JSON  or  Import ← CSV\n" +
-                "• ☁ Sheets → Push ↑ / Pull ↓  (after Sheets Setup)"));
+                "- Export JSON or Export CSV\n" +
+                "- Import JSON or Import CSV\n" +
+                "- Sheets > Push / Pull (after Sheets Setup)"));
 
             scroll.Add(Tip("Add your own data types by creating a class that inherits " +
                            "GameDataContainerBase<YourEntryType>."));
@@ -303,7 +303,7 @@ namespace LiveGameDataEditor.Editor
             scroll.Add(Heading("Google Sheets Setup"));
             scroll.Add(Para(
                 "Connect your data to Google Sheets in a few steps. " +
-                "Your credentials stay in your own Google account — nothing is shared."));
+                "Your credentials stay in your own Google account - nothing is shared."));
 
             if (_wizardConfig == null)
             {
@@ -325,7 +325,7 @@ namespace LiveGameDataEditor.Editor
             var box = new VisualElement();
             box.AddToClassList("welcome-wizard-create-box");
 
-            var title = new Label("Step 1 of 1 — Create your config asset");
+            var title = new Label("Step 1 of 1 - Create your config asset");
             title.AddToClassList("welcome-wizard-section-title");
             box.Add(title);
 
@@ -364,7 +364,7 @@ namespace LiveGameDataEditor.Editor
                         folderDisplay.text = _wizardFolderPath;
                     }
                 })
-                { text = "Browse…" };
+                { text = "Browse..." };
             browseBtn.AddToClassList("welcome-wizard-browse-btn");
             folderRow.Add(browseBtn);
 
@@ -375,7 +375,7 @@ namespace LiveGameDataEditor.Editor
                     CreateWizardConfig(_wizardFolderPath);
                     RebuildSheetsPage();
                 })
-                { text = "✓  Create GoogleSheetsConfig" };
+                { text = "Create GoogleSheetsConfig" };
             createBtn.AddToClassList("welcome-cta-btn");
             box.Add(createBtn);
 
@@ -429,7 +429,7 @@ namespace LiveGameDataEditor.Editor
             textCol.style.flexShrink = 1;
             textCol.style.overflow = Overflow.Hidden;
 
-            var nameLabel = new Label($"✓  {Path.GetFileName(_wizardConfigPath)}");
+            var nameLabel = new Label(Path.GetFileName(_wizardConfigPath));
             nameLabel.AddToClassList("welcome-wizard-config-bar-name");
             textCol.Add(nameLabel);
 
@@ -458,7 +458,7 @@ namespace LiveGameDataEditor.Editor
             step1.Add(Para("Open your Google Sheet in a browser. The Spreadsheet ID is the " +
                            "segment between /d/ and /edit in the URL."));
             step1.Add(Para("Example: docs.google.com/spreadsheets/d/\u00AB ID \u00BB/edit"));
-            step1.Add(LinkButton("Open Google Sheets →", "https://sheets.google.com"));
+            step1.Add(LinkButton("Open Google Sheets", "https://sheets.google.com"));
             step1.Add(WizardField("Spreadsheet ID", _wizardConfig.SpreadsheetId, v =>
             {
                 Undo.RecordObject(_wizardConfig, "Set Spreadsheet ID");
@@ -486,7 +486,7 @@ namespace LiveGameDataEditor.Editor
 
                 var label = mode switch
                 {
-                    GoogleSheetsAuthMode.OAuth => "● OAuth  (recommended)",
+                    GoogleSheetsAuthMode.OAuth => "OAuth (recommended)",
                     GoogleSheetsAuthMode.ApiKey => "API Key  (read-only)",
                     GoogleSheetsAuthMode.ServiceAccount => "Service Account  (CI/CD)",
                     _ => mode.ToString()
@@ -540,7 +540,7 @@ namespace LiveGameDataEditor.Editor
                     Close();
                     EditorApplication.ExecuteMenuItem("Tools/GDE/Open Editor");
                 })
-                { text = "Open Game Data Spreadsheet Editor  →" };
+                { text = "Open Game Data Spreadsheet Editor" };
             openBtn.AddToClassList("welcome-cta-btn");
             form.Add(openBtn);
 
@@ -569,16 +569,16 @@ namespace LiveGameDataEditor.Editor
         {
             parent.Add(WizardSubStep("3a", "Create a Google Cloud project",
                 "Go to Google Cloud Console and create a new project (or select an existing one)."));
-            parent.Add(LinkButton("Open Google Cloud Console →", CloudConsoleUrl));
+            parent.Add(LinkButton("Open Google Cloud Console", CloudConsoleUrl));
 
             parent.Add(WizardSubStep("3b", "Enable the Google Sheets API",
-                "APIs & Services → Library → search 'Google Sheets API' → Enable."));
-            parent.Add(LinkButton("Enable Google Sheets API →", CloudSheetsApiUrl));
+                "APIs & Services > Library > search 'Google Sheets API' > Enable."));
+            parent.Add(LinkButton("Enable Google Sheets API", CloudSheetsApiUrl));
 
             parent.Add(WizardSubStep("3c", "Create OAuth 2.0 credentials",
-                "Credentials → + Create Credentials → OAuth 2.0 Client ID\n" +
-                "Application type: Desktop app — give it any name."));
-            parent.Add(LinkButton("Open Credentials page →", CloudCredentialsUrl));
+                "Credentials > Create Credentials > OAuth 2.0 Client ID\n" +
+                "Application type: Desktop app - give it any name."));
+            parent.Add(LinkButton("Open Credentials page", CloudCredentialsUrl));
 
             parent.Add(WizardField("Client ID", _wizardConfig.OAuthClientId, v =>
             {
@@ -595,8 +595,8 @@ namespace LiveGameDataEditor.Editor
 
             parent.Add(WizardSubStep("3d", "Add yourself as a Test User",
                 "While your OAuth app is in 'Testing' mode, only listed emails can authenticate.\n" +
-                "OAuth consent screen → Test users → + Add users → enter your Google email."));
-            parent.Add(LinkButton("Open OAuth Consent Screen →", CloudConsentUrl));
+                "OAuth consent screen > Test users > Add users > enter your Google email."));
+            parent.Add(LinkButton("Open OAuth Consent Screen", CloudConsentUrl));
         }
 
         private void BuildApiKeyCredentials(VisualElement parent)
@@ -604,9 +604,9 @@ namespace LiveGameDataEditor.Editor
             parent.Add(Para("API Key mode is read-only (Pull only). Your sheet must be shared " +
                             "as 'Anyone with the link can view'."));
             parent.Add(WizardSubStep("3a", "Create an API Key",
-                "Google Cloud Console → APIs & Services → Credentials\n" +
-                "+ Create Credentials → API Key → copy the key."));
-            parent.Add(LinkButton("Open Credentials page →", CloudCredentialsUrl));
+                "Google Cloud Console > APIs & Services > Credentials\n" +
+                "Create Credentials > API Key > copy the key."));
+            parent.Add(LinkButton("Open Credentials page", CloudCredentialsUrl));
             parent.Add(WizardField("API Key", _wizardConfig.ApiKey, v =>
             {
                 Undo.RecordObject(_wizardConfig, "Set API Key");
@@ -620,11 +620,11 @@ namespace LiveGameDataEditor.Editor
             parent.Add(Para("Service Account is suitable for CI/CD pipelines. " +
                             "Keep the JSON key file outside Assets/ and add it to .gitignore."));
             parent.Add(WizardSubStep("3a", "Create a Service Account",
-                "Google Cloud Console → IAM & Admin → Service Accounts → + Create\n" +
+                "Google Cloud Console > IAM & Admin > Service Accounts > Create\n" +
                 "Grant it 'Editor' role on your spreadsheet (share the sheet with the SA email)."));
-            parent.Add(LinkButton("Open Google Cloud Console →", CloudConsoleUrl));
+            parent.Add(LinkButton("Open Google Cloud Console", CloudConsoleUrl));
             parent.Add(WizardSubStep("3b", "Download the JSON key",
-                "Service account → Keys → Add key → Create new key → JSON\n" +
+                "Service account > Keys > Add key > Create new key > JSON\n" +
                 "Save the file somewhere outside your Assets folder."));
             parent.Add(WizardField("JSON Key File Path", _wizardConfig.ServiceAccountJsonPath, v =>
             {
@@ -658,7 +658,7 @@ namespace LiveGameDataEditor.Editor
         private async Task RunTestConnectionAsync(Button testBtn)
         {
             testBtn.SetEnabled(false);
-            SetTestStatus("testing", "⏳  Testing connection…");
+            SetTestStatus("testing", "Testing connection...");
 
             var result = await GoogleSheetsService.TestConnectionAsync(_wizardConfig);
 
@@ -667,9 +667,9 @@ namespace LiveGameDataEditor.Editor
 
             testBtn.SetEnabled(true);
             if (result.Success)
-                SetTestStatus("ok", $"✓  {result.Message}");
+                SetTestStatus("ok", result.Message);
             else
-                SetTestStatus("fail", $"✗  {result.Message}");
+                SetTestStatus("fail", result.Message);
         }
 
         private void SetTestStatus(string state, string message)
@@ -783,9 +783,9 @@ namespace LiveGameDataEditor.Editor
 
             scroll.Add(SubHeading("Links"));
 
-            scroll.Add(LinkButton("📄  Documentation", DocumentationUrl));
-            scroll.Add(LinkButton("🐛  Report an Issue", SupportUrl));
-            scroll.Add(LinkButton("⭐  Rate on the Asset Store", AssetStoreUrl));
+            scroll.Add(LinkButton("Documentation", DocumentationUrl));
+            scroll.Add(LinkButton("Report an Issue", SupportUrl));
+            scroll.Add(LinkButton("Rate on the Asset Store", AssetStoreUrl));
 
             scroll.Add(Separator());
             scroll.Add(SubHeading("License"));
@@ -819,7 +819,7 @@ namespace LiveGameDataEditor.Editor
 
         private static Label Tip(string text)
         {
-            var l = new Label("💡  " + text);
+            var l = new Label("Tip: " + text);
             l.AddToClassList("welcome-tip");
             return l;
         }
