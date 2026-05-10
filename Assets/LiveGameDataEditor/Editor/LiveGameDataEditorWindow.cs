@@ -43,17 +43,24 @@ namespace LiveGameDataEditor.Editor
         private GoogleSheetsSyncPanel _sheetsPanel;
         private GameDataTableView _tableView;
         private readonly Dictionary<int, ValidationCacheEntry> _validationCache = new();
+        private Dictionary<int, List<ValidationResult>> _collectionValidationResults;
+        private Dictionary<int, List<ValidationResult>> _fieldValidationResults;
         private IReadOnlyList<GameDataColumnDefinition> _validationColumns;
         private List<IGameData> _validationEntries;
+        private bool _validationApplyAllRows;
         private int _validationGeneration;
         private int _validationInProgressKey = int.MinValue;
         private int _validationInProgressRowCount = -1;
         private int _validationRowIndex;
+        private List<int> _validationRows;
+        private int _validationRowsIndex;
         private Dictionary<int, List<ValidationResult>> _validationResults;
 
         private sealed class ValidationCacheEntry
         {
             public int RowCount;
+            public Dictionary<int, List<ValidationResult>> CollectionResults;
+            public Dictionary<int, List<ValidationResult>> FieldResults;
             public Dictionary<int, List<ValidationResult>> Results;
         }
 
@@ -404,8 +411,13 @@ namespace LiveGameDataEditor.Editor
 
             _validationEntries = entries.Cast<IGameData>().ToList();
             _validationColumns = GameDataColumnDefinition.FromType(_container.EntryType);
-            _validationResults = GameDataValidationService.RunAll(_validationEntries);
+            _collectionValidationResults = GameDataValidationService.RunAll(_validationEntries);
+            _fieldValidationResults = new Dictionary<int, List<ValidationResult>>();
+            _validationResults = CloneValidationResults(_collectionValidationResults);
             _validationRowIndex = 0;
+            _validationRows = null;
+            _validationRowsIndex = 0;
+            _validationApplyAllRows = true;
             _validationInProgressKey = cacheKey;
             _validationInProgressRowCount = entries.Count;
 
@@ -415,10 +427,18 @@ namespace LiveGameDataEditor.Editor
         private void CancelValidation()
         {
             _validationGeneration++;
+            ClearValidationWorkState();
+        }
+
+        private void ClearValidationWorkState()
+        {
             _validationEntries = null;
             _validationColumns = null;
             _validationResults = null;
             _validationRowIndex = 0;
+            _validationRows = null;
+            _validationRowsIndex = 0;
+            _validationApplyAllRows = false;
             _validationInProgressKey = int.MinValue;
             _validationInProgressRowCount = -1;
         }
@@ -438,35 +458,65 @@ namespace LiveGameDataEditor.Editor
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var rowsChecked = 0;
 
-            while (_validationRowIndex < total &&
+            while (HasMoreValidationRows(total) &&
                    (rowsChecked < MinValidationRowsPerBatch ||
                     (rowsChecked < MaxValidationRowsPerBatch &&
                      stopwatch.ElapsedMilliseconds < MaxValidationBatchMilliseconds)))
             {
-                ValidateRow(_validationRowIndex);
-                _validationRowIndex++;
+                ValidateRow(GetNextValidationRow());
                 rowsChecked++;
             }
 
             var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
-            if (_validationRowIndex < total)
+            if (HasMoreValidationRows(total))
             {
-                _dataTypeLabel.text = $"{displayName} - Validating {_validationRowIndex}/{total} rows";
+                _dataTypeLabel.text = $"{displayName} - Validating {GetValidatedRowCount()}/{total} rows";
                 _contentArea.schedule.Execute(() => ValidateBatch(generation)).ExecuteLater(0);
                 return;
             }
 
-            _tableView.ApplyValidation(_validationResults);
+            _validationResults = CombineValidationResults(_collectionValidationResults, _fieldValidationResults);
+            if (_validationApplyAllRows || _validationRows == null)
+                _tableView.ApplyValidation(_validationResults);
+            else
+                _tableView.ApplyValidationRows(_validationResults, _validationRows);
+
             _tableView.UpdateStats();
             _dataTypeLabel.text = displayName;
-            StoreValidationCache(_container, total, _validationResults);
+            StoreValidationCache(
+                _container,
+                total,
+                _collectionValidationResults,
+                _fieldValidationResults,
+                _validationResults);
 
             _validationEntries = null;
             _validationColumns = null;
             _validationResults = null;
             _validationRowIndex = 0;
+            _validationRows = null;
+            _validationRowsIndex = 0;
+            _validationApplyAllRows = false;
             _validationInProgressKey = int.MinValue;
             _validationInProgressRowCount = -1;
+        }
+
+        private bool HasMoreValidationRows(int total)
+        {
+            return _validationRows == null
+                ? _validationRowIndex < total
+                : _validationRowsIndex < _validationRows.Count;
+        }
+
+        private int GetNextValidationRow()
+        {
+            if (_validationRows == null) return _validationRowIndex++;
+            return _validationRows[_validationRowsIndex++];
+        }
+
+        private int GetValidatedRowCount()
+        {
+            return _validationRows == null ? _validationRowIndex : _validationRowsIndex;
         }
 
         private void ValidateRow(int rowIndex)
@@ -487,23 +537,201 @@ namespace LiveGameDataEditor.Editor
                 {
                     if (!validator.CanValidate(context)) continue;
 
-                    AddValidationResults(validator.Validate(context));
+                    AddValidationResults(_fieldValidationResults, validator.Validate(context));
                 }
             }
         }
 
-        private void AddValidationResults(IEnumerable<ValidationResult> results)
+        private static void AddValidationResults(
+            Dictionary<int, List<ValidationResult>> target,
+            IEnumerable<ValidationResult> results)
         {
             foreach (var result in results)
             {
-                if (!_validationResults.TryGetValue(result.RowIndex, out var rowResults))
+                if (!target.TryGetValue(result.RowIndex, out var rowResults))
                 {
                     rowResults = new List<ValidationResult>();
-                    _validationResults[result.RowIndex] = rowResults;
+                    target[result.RowIndex] = rowResults;
                 }
 
                 rowResults.Add(result);
             }
+        }
+
+        private void StartAffectedRowsValidation(
+            IEnumerable<int> affectedRows,
+            bool validateCollection,
+            bool applyAllRows)
+        {
+            if (_container == null) return;
+
+            if (_validationEntries != null)
+            {
+                _validationGeneration++;
+                ClearValidationWorkState();
+                _collectionValidationResults = null;
+                _fieldValidationResults = null;
+                StartValidation();
+                return;
+            }
+
+            if (_collectionValidationResults == null || _fieldValidationResults == null)
+            {
+                StartValidation();
+                return;
+            }
+
+            var entries = _container.GetEntries();
+            var rows = GetValidUniqueRows(affectedRows, entries.Count);
+            var generation = ++_validationGeneration;
+            var displayName = GameDataTypeRegistry.GetEntryDisplayName(_container.EntryType);
+
+            _validationEntries = entries.Cast<IGameData>().ToList();
+            _validationColumns = GameDataColumnDefinition.FromType(_container.EntryType);
+            if (validateCollection)
+                _collectionValidationResults = GameDataValidationService.RunAll(_validationEntries);
+
+            foreach (var row in rows) _fieldValidationResults.Remove(row);
+
+            _validationResults = CombineValidationResults(_collectionValidationResults, _fieldValidationResults);
+            _validationRows = rows;
+            _validationRowsIndex = 0;
+            _validationRowIndex = 0;
+            _validationApplyAllRows = applyAllRows || validateCollection;
+            _validationInProgressKey = GetContainerCacheKey(_container);
+            _validationInProgressRowCount = entries.Count;
+
+            if (rows.Count == 0)
+            {
+                FinishIncrementalValidation(displayName, entries.Count);
+                return;
+            }
+
+            _dataTypeLabel.text = $"{displayName} - Validating {rows.Count} changed row{(rows.Count == 1 ? "" : "s")}";
+            _contentArea.schedule.Execute(() => ValidateBatch(generation)).ExecuteLater(0);
+        }
+
+        private void FinishIncrementalValidation(string displayName, int rowCount)
+        {
+            _validationResults = CombineValidationResults(_collectionValidationResults, _fieldValidationResults);
+
+            if (_validationApplyAllRows || _validationRows == null)
+                _tableView.ApplyValidation(_validationResults);
+            else
+                _tableView.ApplyValidationRows(_validationResults, _validationRows);
+
+            _tableView.UpdateStats();
+            _dataTypeLabel.text = displayName;
+            StoreValidationCache(
+                _container,
+                rowCount,
+                _collectionValidationResults,
+                _fieldValidationResults,
+                _validationResults);
+
+            ClearValidationWorkState();
+        }
+
+        private static List<int> GetValidUniqueRows(IEnumerable<int> rows, int rowCount)
+        {
+            var unique = new List<int>();
+            if (rows == null) return unique;
+
+            foreach (var row in rows)
+            {
+                if (row < 0 || row >= rowCount || unique.Contains(row)) continue;
+                unique.Add(row);
+            }
+
+            unique.Sort();
+            return unique;
+        }
+
+        private void RemapValidationAfterInsertions(List<int> insertionRows)
+        {
+            if (_fieldValidationResults == null || insertionRows == null || insertionRows.Count == 0) return;
+
+            insertionRows.Sort();
+            foreach (var insertionRow in insertionRows)
+            {
+                _fieldValidationResults = RemapValidationRows(
+                    _fieldValidationResults,
+                    row => row >= insertionRow ? row + 1 : row);
+                _fieldValidationResults.Remove(insertionRow);
+            }
+        }
+
+        private void RemapValidationAfterRemovals(List<int> removedRows)
+        {
+            if (_fieldValidationResults == null || removedRows == null || removedRows.Count == 0) return;
+
+            removedRows.Sort();
+            _fieldValidationResults = RemapValidationRows(
+                _fieldValidationResults,
+                row =>
+                {
+                    if (removedRows.Contains(row)) return -1;
+
+                    var removedBefore = 0;
+                    foreach (var removed in removedRows)
+                    {
+                        if (removed < row) removedBefore++;
+                    }
+
+                    return row - removedBefore;
+                });
+        }
+
+        private void RemapValidationAfterMove(int fromIndex, int insertBefore)
+        {
+            if (_fieldValidationResults == null) return;
+
+            var entries = _container?.GetEntries();
+            if (entries == null || entries.Count == 0) return;
+
+            insertBefore = Mathf.Clamp(insertBefore, 0, entries.Count + 1);
+            var finalIndex = insertBefore > fromIndex ? insertBefore - 1 : insertBefore;
+            finalIndex = Mathf.Clamp(finalIndex, 0, entries.Count - 1);
+            if (fromIndex == finalIndex) return;
+
+            _fieldValidationResults = RemapValidationRows(
+                _fieldValidationResults,
+                row =>
+                {
+                    if (row == fromIndex) return finalIndex;
+                    if (fromIndex < finalIndex && row > fromIndex && row <= finalIndex) return row - 1;
+                    if (finalIndex < fromIndex && row >= finalIndex && row < fromIndex) return row + 1;
+                    return row;
+                });
+        }
+
+        private static Dictionary<int, List<ValidationResult>> RemapValidationRows(
+            Dictionary<int, List<ValidationResult>> source,
+            System.Func<int, int> mapRow)
+        {
+            var remapped = new Dictionary<int, List<ValidationResult>>();
+            foreach (var pair in source)
+            {
+                var newRow = mapRow(pair.Key);
+                if (newRow < 0) continue;
+
+                if (!remapped.TryGetValue(newRow, out var list))
+                {
+                    list = new List<ValidationResult>();
+                    remapped[newRow] = list;
+                }
+
+                foreach (var result in pair.Value)
+                {
+                    list.Add(new ValidationResult(
+                        newRow,
+                        result.FieldName,
+                        result.Message,
+                        result.Severity));
+                }
+            }
+
+            return remapped;
         }
 
         private bool TryApplyCachedValidation(IGameDataContainer container, int rowCount)
@@ -512,6 +740,8 @@ namespace LiveGameDataEditor.Editor
             if (!_validationCache.TryGetValue(key, out var cache)) return false;
             if (cache.RowCount != rowCount || cache.Results == null) return false;
 
+            _collectionValidationResults = CloneValidationResults(cache.CollectionResults);
+            _fieldValidationResults = CloneValidationResults(cache.FieldResults);
             _tableView.ApplyValidation(cache.Results);
             _tableView.UpdateStats();
             return true;
@@ -520,6 +750,8 @@ namespace LiveGameDataEditor.Editor
         private void StoreValidationCache(
             IGameDataContainer container,
             int rowCount,
+            Dictionary<int, List<ValidationResult>> collectionResults,
+            Dictionary<int, List<ValidationResult>> fieldResults,
             Dictionary<int, List<ValidationResult>> results)
         {
             if (container == null || results == null) return;
@@ -527,6 +759,8 @@ namespace LiveGameDataEditor.Editor
             _validationCache[GetContainerCacheKey(container)] = new ValidationCacheEntry
             {
                 RowCount = rowCount,
+                CollectionResults = CloneValidationResults(collectionResults),
+                FieldResults = CloneValidationResults(fieldResults),
                 Results = CloneValidationResults(results)
             };
         }
@@ -542,6 +776,8 @@ namespace LiveGameDataEditor.Editor
             if (container == null)
             {
                 _validationCache.Clear();
+                _collectionValidationResults = null;
+                _fieldValidationResults = null;
                 return;
             }
 
@@ -558,8 +794,29 @@ namespace LiveGameDataEditor.Editor
             Dictionary<int, List<ValidationResult>> source)
         {
             var clone = new Dictionary<int, List<ValidationResult>>();
+            if (source == null) return clone;
+
             foreach (var pair in source) clone[pair.Key] = new List<ValidationResult>(pair.Value);
             return clone;
+        }
+
+        private static Dictionary<int, List<ValidationResult>> CombineValidationResults(
+            Dictionary<int, List<ValidationResult>> collectionResults,
+            Dictionary<int, List<ValidationResult>> fieldResults)
+        {
+            var combined = CloneValidationResults(collectionResults);
+            foreach (var pair in fieldResults ?? new Dictionary<int, List<ValidationResult>>())
+            {
+                if (!combined.TryGetValue(pair.Key, out var list))
+                {
+                    list = new List<ValidationResult>();
+                    combined[pair.Key] = list;
+                }
+
+                list.AddRange(pair.Value);
+            }
+
+            return combined;
         }
 
         private static int GetContainerCacheKey(IGameDataContainer container)
@@ -616,7 +873,7 @@ namespace LiveGameDataEditor.Editor
         {
             GameDataService.UpdateEntry(_container, index, updated);
             InvalidateValidationCache(_container);
-            StartValidation();
+            StartAffectedRowsValidation(new List<int> { index }, true, true);
             _tableView.UpdateStats();
         }
 
@@ -634,11 +891,12 @@ namespace LiveGameDataEditor.Editor
 
             _selectionBar.UpdateInfo(_container);
             if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
-            StartValidation();
+            StartAffectedRowsValidation(new List<int> { _container.GetEntries().Count - 1 }, true, true);
         }
 
         private void OnRemoveEntries(List<int> indices)
         {
+            var removedRows = GetValidUniqueRows(indices, _container?.GetEntries().Count ?? 0);
             GameDataService.RemoveEntries(_container, indices);
             InvalidateValidationCache(_container);
 
@@ -651,11 +909,16 @@ namespace LiveGameDataEditor.Editor
 
             _selectionBar.UpdateInfo(_container);
             if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
-            StartValidation();
+            RemapValidationAfterRemovals(removedRows);
+            StartAffectedRowsValidation(null, true, true);
         }
 
         private void OnDuplicateEntries(List<int> indices)
         {
+            var sourceRows = GetValidUniqueRows(indices, _container?.GetEntries().Count ?? 0);
+            var insertionRows = new List<int>();
+            for (var i = 0; i < sourceRows.Count; i++) insertionRows.Add(sourceRows[i] + 1 + i);
+
             GameDataService.DuplicateEntries(_container, indices);
             InvalidateValidationCache(_container);
 
@@ -668,7 +931,8 @@ namespace LiveGameDataEditor.Editor
 
             _selectionBar.UpdateInfo(_container);
             if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
-            StartValidation();
+            RemapValidationAfterInsertions(insertionRows);
+            StartAffectedRowsValidation(insertionRows, true, true);
         }
 
         private void OnMoveEntry(int fromIndex, int insertBefore)
@@ -685,7 +949,8 @@ namespace LiveGameDataEditor.Editor
 
             _selectionBar.UpdateInfo(_container);
             if (_sheetsPanel != null) _sheetsPanel.SetContainer(_container);
-            StartValidation();
+            RemapValidationAfterMove(fromIndex, insertBefore);
+            StartAffectedRowsValidation(null, true, true);
         }
     }
 }

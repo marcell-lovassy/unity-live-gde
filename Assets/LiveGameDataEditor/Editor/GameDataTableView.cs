@@ -494,6 +494,19 @@ namespace LiveGameDataEditor.Editor
             }
         }
 
+        public void ApplyValidationRows(Dictionary<int, List<ValidationResult>> results, IEnumerable<int> rowIndices)
+        {
+            if (_isPopulating || rowIndices == null) return;
+
+            foreach (var rowIndex in rowIndices)
+            {
+                if (rowIndex < 0 || rowIndex >= _rows.Count) continue;
+
+                results.TryGetValue(rowIndex, out var rowResults);
+                _rows[rowIndex].SetValidationState(rowResults);
+            }
+        }
+
         /// <summary>
         ///     Refreshes the stats footer without rebuilding rows.
         ///     Call this after an inline field edit so sum/avg stays current.
